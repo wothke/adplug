@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
 <!--
  AdLibido: HTML5 Audio/JavaScript port of Adplug.
 
@@ -6,341 +9,166 @@
 
  Original C code of "AdPlug" (see http://sourceforge.net/projects/adplug/)
 
-	
+ Credits: The visualization used on this page was strongly "inspired" by this demo:
+ http://html5-demos.appspot.com/static/webaudio/createMediaSourceElement.html
+
+ LICENSE
  
-
- Terms of Use: This software is licensed under a CC BY-NC-SA 
- (http://creativecommons.org/licenses/by-nc-sa/4.0/).
-
- Credits: The visualization used on this page was strongly "inspired" by <a target="_blank" href="http://html5-demos.appspot.com/static/webaudio/createMediaSourceElement.html">this demo</a>
-
+ This library is free software; you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2.1 of the License, or (at
+ your option) any later version. This library is distributed in the hope
+ that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 -->
-
-<html>
-<head>
-<meta charset="utf-8" />
 <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-<title>AdLibido - the AdPlug music player for the Web</title>
+<title>AdLibido - the AdLib music player for the Web</title>
 
 <meta name="description" content="Experimental JavaScript version of AdPlug; AdPlug is a player that (more or less) supports a varity obsure AdLib formats:	A2M: AdLib Tracker 2 by subz3ro, ADL: Westwood ADL File Format, AMD: AMUSIC Adlib Tracker by Elyssis, BAM: Bob's Adlib Music Format, CFF: BoomTracker 4.0 by CUD, CMF: Creative Music File Format by Creative Technology, D00: EdLib by Vibrants,	DFM: Digital-FM by R.Verhaag, DMO: Twin TrackPlayer by TwinTeam, DRO: DOSBox Raw OPL Format,	DTM: DeFy Adlib Tracker by DeFy, HSC: HSC Adlib Composer by Hannes Seifert, HSC-Tracker by Electronic Rats, HSP: HSC Packed by Number Six / Aegis Corp., IMF: Apogee IMF File Format, KSM: Ken Silverman's Music Format, LAA: LucasArts AdLib Audio File Format by LucasArts, LDS: LOUDNESS Sound System,	M: Origin AdLib Music Format, MAD: Mlat Adlib Tracker, MID: MIDI Audio File Format, MKJ: MKJamz by M \ K Productions (preliminary), MSC: AdLib MSCplay, MTK: MPU-401 Trakker by SuBZeR0, RAD: Reality ADlib Tracker by Reality, RAW: RdosPlay RAW file format by RDOS, RIX: Softstar RIX OPL Music Format, ROL: AdLib Visual Composer by AdLib Inc., S3M: Screamtracker 3 by Future Crew, SA2: Surprise! Adlib Tracker 2 by Surprise! Productions, SAT: Surprise! Adlib Tracker by Surprise! Productions, SCI: Sierra's AdLib Audio File Format, SNG: SNGPlay by BUGSY of OBSESSION, SNG: Faust Music Creator by FAUST, SNG: Adlib Tracker 1.0 by TJ, XAD: eXotic ADlib Format by Riven the Mage, XMS: XMS-Tracker by MaDoKaN/E.S.G, XSM: eXtra Simple Music by Davey W Taylor">
 <meta name="author" content="Juergen Wothke">
 <meta name="keywords" content="Web Audio API, HTML5, JavaScript">
 
-<!--link href="http://fonts.googleapis.com/css?family=Open+Sans:300" rel="stylesheet" type="text/css"-->
-<link href="font.css" rel="stylesheet" type="text/css">
-<link href="common.css" rel="stylesheet" type="text/css">
+<link href="stdlib/font.css" rel="stylesheet" type="text/css">
+<link href="stdlib/common.css" rel="stylesheet" type="text/css">
+<link href="add_on.css" rel="stylesheet" type="text/css">
+
 <link rel="image_src" href="screenshot.gif" />
-
-
+<meta property="og:image" content="http://www.wothke.ch/AdLibido/screenshot.gif" />
 
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
 <link type="image/x-icon" href="favicon.ico" />
 
-<script type="text/javascript" src="web_adplug.js"></script>
-<script type="text/javascript" src="sample_player.js"></script>
+<script type="text/javascript" src="stdlib/jquery1.11.min.js"></script>
+<script type="text/javascript" src="stdlib/jquery.details.min.js"></script>
+<script type="text/javascript" src="stdlib/scriptprocessor_player.min.js"></script>
 
+<script>window.openDetails=false;</script>
+<script type="text/javascript" src="stdlib/mini_display.js"></script>
+<script type="text/javascript" src="stdlib/mini_controls.js"></script>
+
+<script type="text/javascript" src="backend_adplug.js"></script>
 <script>
-var basePath= 'music/';
-var songs = [
-	basePath+'blaster2.msc',
-	basePath+'BOOTUP.M',
-	basePath+'dro_v2.dro',
-	basePath+'DTM-TRK1.DTM',
-	basePath+'fdance03.dmo',
-	basePath+'flash.xad',
-	basePath+'GIANA.SA2',
-	basePath+'hybrid.xad',
-	basePath+'hyp.xad',
-	basePath+'inc.raw',
-	basePath+'Monkey Island 2.laa',
-	basePath+'REVELAT.SNG',
-	basePath+'TU_BLESS.AMD',
-	basePath+'VIB_VOL3.D00',
-	basePath+'ZAKMIX4.D00',
-];
-
-var player= new SamplePlayer(basePath, doOnEnd, doOnUpdate);
-
-function doOnEnd(){ audio.playNextSong(); player.isPaused= false; }
-function doOnUpdate(){ 
-	audio.initialAudioSetup();
-	updateGUI();
-	audio.startMusicPlayback();		
+var playerControls;
+var	songDisplay;
+	
+// configure what music infos to display in SongDisplay
+AdPlugDisplayAccessor = (function(){ var $this = function (doGetSongInfo) {
+		$this.base.call(this, doGetSongInfo);
+	}; 
+	extend(DisplayAccessor, $this, {
+		getDisplayTitle: function() 	{ return "AdLibido"; },
+		getDisplaySubtitle: function() 	{ return "lets play some music.."; },
+		getDisplayLine1: function() { return this.getSongInfo().title; },
+		getDisplayLine2: function() { return this.getSongInfo().player; },
+		getDisplayLine3: function() { return ""; }
+	});	return $this; })();
+		
+// link player events to "controls" and "display"
+function doOnTrackEnd(){
+	if (playerControls) playerControls.playNextSong();  
+}
+function doOnTrackReadyToPlay(){ 	
+	ScriptNodePlayer.getInstance().play();
+	songDisplay.redrawSongInfo();
+}
+function doOnPlayerReady() {
+	if (playerControls) playerControls.playNextSong();
 }
 
-// ---------------------------- WebAudio stuff ----------------------------
-
-Audio = function(songs) {
-	this.audioCtx;
-	this.bufferSource;
-	this.gainNode;
-	this.analyzerNode;
-	
-	this.current=-1;
-	this.someSongs= songs;
-	this.isReady= false;
-	
+function init() {
+	// --------------------------- AdPlug music player -----------------------
+	var basePath= '';		// not needed here
 	// preload all the intrastructure files so we won't run into async load issues later
 	var files = [
-		"res/icepatch.003",		// needed for SCI - HACK: each SCI file need its own *patch.003 file, i.e. when used in a playlist 1st list the .003 file so it gets loaded
+		"res/icepatch.003",		// needed for SCI - HACK: each SCI file needs its own *patch.003 file, i.e. when used in a playlist 1st list the .003 file so it gets loaded
 		"res/insts.dat",		// needed for KSM
 		"res/standard.bnk",		// needed for ROL
 		"res/adplug.db"
 	];		
-	var f= window.player['preloadFiles'].bind(window.player);
-	f(files, function() {
-		this.isReady= true;
-		this.playNextSong();
+	ScriptNodePlayer.createInstance(new AdPlugBackendAdapter(), basePath, files, true, doOnPlayerReady,
+										doOnTrackReadyToPlay, doOnTrackEnd);
 		
-	}.bind(this));
-};
-
-Audio.prototype = {
-	initialAudioSetup: function() {
-		if (typeof this.bufferSource != 'undefined') { 
-			this.bufferSource.stop(0);
-		} else {
-			this.setupAudioNodes();
-		}
-	},
-	setupAudioNodes: function() {
-		if (typeof this.audioCtx == 'undefined') {
-			try {
-				window.AudioContext = window.AudioContext||window.webkitAudioContext;
-				this.audioCtx = new AudioContext();
-			} catch(e) {
-				alert('Web Audio API is not supported in this browser (get Chrome 18 or Firefox 26)');
-			}
-			this.analyzerNode = this.audioCtx.createAnalyser();
-
-			var scriptNode= player.createScriptProcessor(this.audioCtx);
-			
-			this.gainNode = this.audioCtx.createGain();
+	// --------------------------- UI - basic player controls --------------
+	var songs = [
+		// optional: use format "filename;%" where % is number of the track to be played
+		'music/blaster2.msc',
+		'music/BOOTUP.M',
+		'music/dro_v2.dro',
+		'music/DTM-TRK1.DTM',
+		'music/fdance03.dmo',
+		'music/flash.xad',
+		'music/GIANA.SA2',
+		'music/hybrid.xad',
+		'music/hyp.xad',
+		'music/inc.raw',
+		'music/Monkey Island 2.laa',
+		'music/REVELAT.SNG',
+		'music/TU_BLESS.AMD',
+		'music/VIB_VOL3.D00',
+		'music/ZAKMIX4.D00',
+	];
+	playerControls= new BasicPlayerControls(songs, true, false,
+				(function(someSong) {
+						var arr= someSong.split(";");	
+						var track= arr.length>1?parseInt(arr[1]):0;		
+						var url= arr[0];
 						
-			scriptNode.connect(this.gainNode);
-			this.gainNode.connect(this.analyzerNode);
-			this.analyzerNode.connect(this.audioCtx.destination);
-		}
-	},
-	
-	removeFromPlaylist: function(songname) {
-		if (this.someSongs[this.current] == songname) {
-			this.someSongs.splice(this.current, 1);
-			if (this.current + 1 == this.someSongs.length) this.current= 0;
-		}
-	},
-	playNextSong: function() {
-		if (this.isReady && this.someSongs.length) {	
-			this.current= (++this.current >=this.someSongs.length) ? 0 : this.current;
-			var someSong= this.someSongs[this.current];
-			this.playSong(someSong);
-		}
-	},
-	playPreviousSong: function() {
-		if (this.isReady && this.someSongs.length) {	
-			this.current= (--this.current<0) ? this.current+this.someSongs.length : this.current;
-			var someSong= this.someSongs[this.current];
-			this.playSong(someSong);
-		}
-	},
-	playSong: function(someSong) {
-		var arr= someSong.split(";");	
-		var track= arr.length>1?parseInt(arr[1]):0;
-		var fn= arr[0];
-		
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", someSong, true);
-		xhr.responseType = "arraybuffer";
-		xhr.onload = function (oEvent) {		
-				if(!player.playSong(fn, xhr.response, track)) {
-					this.removeFromPlaylist(someSong);	// no point trying to play this again
-				}		
-		}.bind(this);
-		xhr.send(null);
-	},
-	startMusicPlayback: function() {
-		player.isPaused= false;
+						var options= {};
+						options.track= track;
 
-		if (typeof this.bufferSource === 'undefined') {
-			this.bufferSource = this.audioCtx.createBufferSource();
-			if (!this.bufferSource.start) {
-			  this.bufferSource.start = this.bufferSource.noteOn;
-			  this.bufferSource.stop = this.bufferSource.noteOff;
-			}
-			this.bufferSource.start(0);		
-		}
-	}
-};
+						return [url, options];
+					})
+				);
 
-// ---------------------    drag&drop feature -----------------------------------
-function allowDrop(ev) {
-    ev.preventDefault();
+	// limit rendering to 50% CPU (AdPlug is fast enough so there is no need ..)
+	songDisplay= new SongDisplay(new AdPlugDisplayAccessor((function(){return playerControls.getSongInfo();})), 
+								[0x78078d], 0, 0.5, (function(){playerControls.animate()}));
+
+	playerControls.playNextSong();
 }
-function drop(ev) {
-    ev.preventDefault();
-    var data = ev.dataTransfer.getData("Text");
-	var file = ev.dataTransfer.files[0];
-	if (audio.isReady && file instanceof File) {
-		file.name= basePath + file.name;	// put into the same folder as our regular files
-		var f= window.player['playTmpFile'].bind(window.player);
-		f(file);
-	}
-}
-// ---------------------------- some visuals ----------------------------
-
-Graphix = function(audio) {
-	this.audio= audio;
-	
-	this.WIDTH= 800;
-	this.HEIGHT= 200;
-	
-	this.canvasSpectrum = document.getElementById('spectrum');
-	this.ctxSpectrum = this.canvasSpectrum.getContext('2d');
-	this.canvasSpectrum.width = this.WIDTH;
-
-	var canvas2 = document.getElementById('logo');
-	this.ctxLegend = canvas2.getContext('2d');
-};
-
-Graphix.prototype = {
-	reqAnimationFrame: function() {
-		window.requestAnimationFrame(this.redrawSpectrum.bind(this));
-	},
-	redrawSpectrum: function() {
-		this.reqAnimationFrame();
-		
-		var freqByteData = new Uint8Array(this.audio.analyzerNode.frequencyBinCount);
-		this.audio.analyzerNode.getByteFrequencyData(freqByteData);
-
-		var SPACER_WIDTH = 10;
-		var BAR_WIDTH = 5;
-		var OFFSET = 100;
-
-		var numBars = Math.round(this.WIDTH / SPACER_WIDTH);
-
-		this.ctxSpectrum.clearRect(0, 0, this.WIDTH, this.HEIGHT);
-
-		this.ctxSpectrum.fillStyle = '#78078d';
-		this.ctxSpectrum.lineCap = 'round';
-
-		for (var i = 0; i < numBars; ++i) {
-		var magnitude = freqByteData[i + OFFSET]*this.HEIGHT/255;
-			this.ctxSpectrum.fillRect(i * SPACER_WIDTH, this.HEIGHT, BAR_WIDTH, -magnitude);
-		}
-	},
-	text: function(ctx, text, x, y) {
-		ctx.strokeText(text, x, y);
-		ctx.fillText(text, x, y);
-	},
-	redrawSongInfo: function() {
-		this.ctxLegend.clearRect(0, 0, 800, 300);
-		
-		this.ctxLegend.textBaseline = "middle";
-		this.ctxLegend.fillStyle = '#000';
-		this.ctxLegend.strokeStyle = "#FFFFFF";
-		
-		this.ctxLegend.font = '90px serif bold';
-		
-		this.text(this.ctxLegend, "AdLibido", 20, 70);
-		this.ctxLegend.font = '25px sans-serif';
-		this.text(this.ctxLegend, "lets play some music..", 20, 125);
-
-		this.ctxLegend.fillStyle = '#888';
-		this.ctxLegend.font = '25px sans-serif';
-
-		this.ctxLegend.textBaseline = 'bottom';
-		this.text(this.ctxLegend, player.title, 20, 190);
-		this.text(this.ctxLegend, player.player, 20, 230);
-		this.text(this.ctxLegend, "", 20, 270);
-	},
-};
-
-
-function updateGUI() {
-	gfx.reqAnimationFrame();
-	gfx.redrawSongInfo();
-}
-
-function init() {
-	audio= new Audio(songs);
-	gfx= new Graphix(audio);
-
-
-	document.getElementById("previous").onclick = audio.playPreviousSong.bind(audio);
-	document.getElementById("next").onclick = audio.playNextSong.bind(audio);
-			
-	document.getElementById("play").onclick = function(e){
-		player.isPaused= false;
-	};
-	document.getElementById("pause").onclick = function(e){
-		player.isPaused= true;
-	};
-	document.getElementById("gain").onchange = function(e){
-		audio.gainNode.gain.value= this.value/255;
-	};
-
-	audio.playNextSong();
-}
-
 </script>
-
+<script type="text/javascript" src="stdlib/analytics.js"></script>
 </head>
 
 <body onload="init();">
-<div class="tooltip" id="tooltip" alt="This is a hobby project, but it costs not only time to regularily maintain this site but also money to pay for the internet service provider (etc). If you want to keep this site up and running.. or if you just like my work (see https://jwothke.wordpress.com/) and you'd like to see more of it in the future, please make a contribution. Thank you!">
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
-<input type="hidden" name="cmd" value="_s-xclick">
-<input type="hidden" name="hosted_button_id" value="E7ACAHA7W5FYC">
-<input type="image" src="btn_donate_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-<img alt="" border="0" src="pixel.gif" width="1" height="1">
-</form>
-</div>
+<div class="tooltip" id="tooltip" alt= "This is a hobby project, but it costs not only time to regularily maintain this site but also money to pay for the internet service provider (etc). If you want to keep this site up and running.. or if you just like my work (see https://jwothke.wordpress.com/) and you'd like to see more of it in the future, please make a contribution. Thank you!"></div>
 
 <details>
   <summary>What's this?</summary>
   <div>
- <p>
-    AdLibido: Experimental JavaScript/HTML5 version of <a href="http://adplug.sourceforge.net/" target="_blank">AdPlug</a>. 
-	
-	(AdPlug plays sound data, originally created for the AdLib (OPL2) and Sound Blaster (Dual OPL2/OPL3) audio boards, directly from its original format on top of an emulator.)
- </p>
- <p>
-	Bring your own files by dropping them onto the OPL chip.
- </p>
+  <p>AdLibido: Experimental JavaScript/HTML5 version of <a href="http://adplug.sourceforge.net/" target="_blank">AdPlug</a>. (AdPlug plays sound data, originally created for the AdLib (OPL2) and Sound Blaster (Dual OPL2/OPL3) audio boards, directly from its original format on top of an emulator.</p>
  
-  <p>2014 by Juergen Wothke</p>
+  <p>Bring your own files by dropping them onto the OPL chip.</p>
  
-  <p>This page does not use any plugins but is based exclusively on the draft version Web Audio API. 
+  <p>2014 by Juergen Wothke  (The source code can be found <a target="_blank" href="https://github.com/wothke/">here</a>.)</p>
+ 
+  <p>This page does not use any plugins but is based exclusively on the draft version WebAudio API. 
   You'll need Chrome or Firefox to make it play the music. The visual effects 
   work best in Chrome. (If Firefox passes out - press 'reload'... it's experimental.)
   
   <p>Contrarry to most other HTML5 based pages out there, the music here is NOT based on  
   OscillatorNode based waveforms or the playback of some sampledata file. Instead the samples here 
-  are completely calculated within JavaScript by running the xmp emulator logic. (The source code can be found <a target="_blank" href="https://github.com/wothke/">here</a>.)</p>  
- <p>Please use controls on the right (e.g. to play another song): 
-<button id="play"> &gt;</button>
-<button id="pause"> ||</button>
-<button id="previous"> |&lt;&lt;</button>
-<button id="next"> &gt;&gt;|</button>
-<input type="range" id="gain" name="gain" min="1" max="255" value="255">
-
+  are completely calculated within JavaScript by running the AdPlug emulator logic.</p>  
+ 
+  <p>Please use the below controls to navigate between the songs that you have dropped on the player:
+  <span id="controls"></span>
  </div>
 </details>
-<aside>
-  
-</aside>
-
+<aside></aside>
 <section>
-  <div>
-	<canvas id="logo" class="logo" width="600" height="190"></canvas>
-    <canvas id="spectrum" class="spectrum" width="512" height="200"></canvas>
+  <div id="logo" class="logo">
+	<div id="moz-reflect-logo"><canvas  id="logoCanvas"  width="600" height="280"></canvas></div>
   </div>
-  <div id="drop" class="drop" ondrop="drop(event)" ondragover="allowDrop(event)">
- <img src="yamaha_ani.gif" width=200 height=200/>
+  <div id="spectrum" class="spectrum">
+  	<div id="moz-reflect-spectrum"><canvas id="spectrumCanvas" width="512" height="200"></canvas></div>
   </div>
-
+  <div id="drop" class="drop"><img src="yamaha_ani.gif" width=200 height=200/></div><!--see BasicPlayerControls-->
 </section>
-
 </body>
 </html>
