@@ -65,6 +65,9 @@ struct StaticBlock {
 
 static StaticBlock staticBlock;
 
+unsigned long playTime= 0;
+unsigned long totalTime= 0;
+unsigned int sampleRate= 44100;
 
 extern "C" void emu_teardown (void)  __attribute__((noinline));
 extern "C" void EMSCRIPTEN_KEEPALIVE emu_teardown (void) {
@@ -74,8 +77,6 @@ extern "C" void EMSCRIPTEN_KEEPALIVE emu_teardown (void) {
   if (outputBuffer) {free(outputBuffer); outputBuffer= 0;}
 }
 
-//extern "C" int emu_init(int sample_rate, char *basedir, char *songmodule, void *buf, unsigned long len) __attribute__((noinline));
-//extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, char *songmodule, void *buf, unsigned long len)
 extern "C" int emu_init(int sample_rate, char *basedir, char *songmodule) __attribute__((noinline));
 extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, char *songmodule)
 {
@@ -90,7 +91,6 @@ extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, cha
 	
 	// initialize output & player
 	player->get_opl()->init();
-//	player->p = CAdPlug::factory(fn, player->get_opl(), CAdPlug::players, WebCProvider_Filesystem(buf, len));
 	player->p = CAdPlug::factory(fn, player->get_opl());
 		
 	if (db == 0) {
@@ -106,13 +106,20 @@ extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, cha
 		return -1;
 	}	
 		
+	sampleRate= sample_rate;
+
 	return 0;
 }
 
-extern "C" void emu_set_subsong(int subsong) __attribute__((noinline));
-extern "C" void EMSCRIPTEN_KEEPALIVE emu_set_subsong(int subsong)
+extern "C" int emu_set_subsong(int subsong) __attribute__((noinline));
+extern "C" int EMSCRIPTEN_KEEPALIVE emu_set_subsong(int subsong)
 {
 	player->p->rewind(subsong);
+	
+	playTime= 0;
+	totalTime= player->p->songlength(subsong);	// must be cached bc call corrupts playback
+	
+	return 0;
 }
 
 extern "C" const char** emu_get_track_info() __attribute__((noinline));
@@ -143,11 +150,28 @@ extern "C" long EMSCRIPTEN_KEEPALIVE emu_get_audio_buffer_length(void) {
 extern "C" int emu_compute_audio_samples() __attribute__((noinline));
 extern "C" int EMSCRIPTEN_KEEPALIVE emu_compute_audio_samples() {
     player->frame();
+	playTime+= (player->getSampleBufferSize()>>2);
 	
 	if (player->playing) {
 		return 0;
 	} else {
 		return 1;
 	}
+}
+
+extern "C" int emu_get_current_position() __attribute__((noinline));
+extern "C" int EMSCRIPTEN_KEEPALIVE emu_get_current_position() {
+	return playTime / sampleRate *1000;	
+}
+
+extern "C" void emu_seek_position(int pos) __attribute__((noinline));
+extern "C" void EMSCRIPTEN_KEEPALIVE emu_seek_position(int pos) {
+	playTime= pos/1000*sampleRate;
+	player->p->seek(pos);
+}
+
+extern "C" int emu_get_max_position() __attribute__((noinline));
+extern "C" int EMSCRIPTEN_KEEPALIVE emu_get_max_position() {
+	return totalTime;
 }
 

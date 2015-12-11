@@ -1,4 +1,4 @@
-AdLibido - WebAudio port of AdPlug
+AdLibido - WebAudio plugin of AdPlug
 ========
 
 	Copyright (C) 2014 Juergen Wothke
@@ -6,6 +6,9 @@ AdLibido - WebAudio port of AdPlug
 	LICENSE
 		See individual files for specific licensing information
 
+		
+This is a JavaScript/WebAudio plugin of AdPlug. This plugin is designed to work with version 1.0 of my 
+generic WebAudio ScriptProcessor music player (see separate project). 
 
 AdLibido is based on "adplug-2.2.1". Some unused folders have been completely removed: "adplugdb", doc", "test". The "libbinio" dependency has dierectly been included. 
 
@@ -28,7 +31,7 @@ Howto build:
 
 The Web version is built using the makeEmscripten.bat that can be found in this folder. The 
 script will compile directly into the "emscripten/htdocs" example web folder, were it will create 
-the web_adplug.js library. The content of the "htdocs" can be tested by first copying into some 
+the backend_adplug.js library. The content of the "htdocs" can be tested by first copying into some 
 document folder of a web server (this running example shows how the code is used). 
 
 
