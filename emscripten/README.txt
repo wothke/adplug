@@ -1,41 +1,39 @@
-AdLibido - WebAudio plugin of AdPlug
-========
+# AdLibido - WebAudio plugin of AdPlug
 
 	Copyright (C) 2014 Juergen Wothke
 
 	LICENSE
-		See individual files for specific licensing information
+		GNU Lesser General Public License (like the underlying 'adplug')
 
 		
-This is a JavaScript/WebAudio plugin of AdPlug. This plugin is designed to work with version 1.0 of my 
+This is a JavaScript/WebAudio plugin of AdPlug. This plugin is designed to work with my 
 generic WebAudio ScriptProcessor music player (see separate project). 
 
 AdLibido is based on "adplug-2.2.1". Some unused folders have been completely removed: "adplugdb", doc", "test". The "libbinio" dependency has dierectly been included. 
 
 Everything needed for the WebAudio version is contained in this "emscripten" folder. The 
-original AdPlug code is completely unchanged, i.e. should be trivial to merge future AdPlug 
+original AdPlug code is completely unchanged (except for required bug fixes), i.e. should be trivial to merge future AdPlug 
 fixes or updates.
 
+You'll need Emscripten (http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html). The make script 
+is designed for use of emscripten version 1.37.29 (unless you want to create WebAssembly output, older versions might 
+also still work).
 
-You'll need Emscripten (I used the win installer on WinXP: emsdk-1.13.0-full-32bit.exe which 
-could - at the time - be found here: http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html) 
 
-I did not need to perform ANY additions or manual changes on the installation. The below 
-instructions assume that the adplug-2.2.1 project folder has been moved into the main emscripten 
+## Howto build
+
+The below instructions assume that the adplug-2.2.1 project folder has been moved into the main emscripten 
 installation folder (maybe not necessary) and that a command prompt has been opened within the 
 project's "emscripten" sub-folder, and that the Emscripten environment vars have been previously 
 set (run emsdk_env.bat).
 
-
-Howto build:
-
-The Web version is built using the makeEmscripten.bat that can be found in this folder. The 
+The Web version is then built using the makeEmscripten.bat that can be found in this folder. The 
 script will compile directly into the "emscripten/htdocs" example web folder, were it will create 
 the backend_adplug.js library. The content of the "htdocs" can be tested by first copying into some 
 document folder of a web server (this running example shows how the code is used). 
 
 
-Background information:
+# Background information
 
 Because the original implementation was not touched, the code doesn't cope with the async file 
 loading approach normally taken by web apps. (You might want to have a look at my WebUADE for an 
