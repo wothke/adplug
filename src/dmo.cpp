@@ -49,7 +49,7 @@ CPlayer *CdmoLoader::factory(Copl *newopl)
   return new CdmoLoader(newopl);
 }
 
-bool CdmoLoader::load(const std::string &filename, const CFileProvider &fp)
+char CdmoLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   int i,j;
   binistream *f;

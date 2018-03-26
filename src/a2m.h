@@ -32,7 +32,7 @@ public:
   Ca2mLoader(Copl *newopl): CmodPlayer(newopl)
     { }
 
-  bool load(const std::string &filename, const CFileProvider &fp);
+  char load(const std::string &filename, const CFileProvider &fp);
   float getrefresh();
 
   std::string gettype()

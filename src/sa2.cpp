@@ -32,7 +32,7 @@ CPlayer *Csa2Loader::factory(Copl *newopl)
   return new Csa2Loader(newopl);
 }
 
-bool Csa2Loader::load(const std::string &filename, const CFileProvider &fp)
+char Csa2Loader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   struct {

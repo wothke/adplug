@@ -31,7 +31,7 @@ CPlayer *ChscPlayer::factory(Copl *newopl)
   return new ChscPlayer(newopl);
 }
 
-bool ChscPlayer::load(const std::string &filename, const CFileProvider &fp)
+char ChscPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream	*f = fp.open(filename);
   int		i;

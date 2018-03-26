@@ -53,7 +53,7 @@ CPlayer *CimfPlayer::factory(Copl *newopl)
   return new CimfPlayer(newopl);
 }
 
-bool CimfPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CimfPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   unsigned long fsize, flsize, mfsize = 0;

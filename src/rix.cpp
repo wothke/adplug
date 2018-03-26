@@ -64,7 +64,7 @@ CrixPlayer::~CrixPlayer()
     delete [] file_buffer;
 }
 
-bool CrixPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CrixPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   unsigned long i=0;

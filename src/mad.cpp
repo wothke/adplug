@@ -29,7 +29,7 @@ CPlayer *CmadLoader::factory(Copl *newopl)
   return new CmadLoader(newopl);
 }
 
-bool CmadLoader::load(const std::string &filename, const CFileProvider &fp)
+char CmadLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   const unsigned char conv_inst[10] = { 2,1,10,9,4,3,6,5,8,7 };

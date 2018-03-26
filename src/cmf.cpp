@@ -107,7 +107,7 @@ CcmfPlayer::~CcmfPlayer()
 	if (this->pInstruments) delete[] pInstruments;
 }
 
-bool CcmfPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CcmfPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
 

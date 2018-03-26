@@ -34,7 +34,7 @@ CPlayer *Cu6mPlayer::factory(Copl *newopl)
   return new Cu6mPlayer(newopl);
 }
 
-bool Cu6mPlayer::load(const std::string &filename, const CFileProvider &fp)
+char Cu6mPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   // file validation section
   // this section only checks a few *necessary* conditions

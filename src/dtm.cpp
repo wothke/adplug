@@ -32,7 +32,7 @@ CPlayer *CdtmLoader::factory(Copl *newopl)
   return new CdtmLoader(newopl);
 }
 
-bool CdtmLoader::load(const std::string &filename, const CFileProvider &fp)
+char CdtmLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   const unsigned char conv_inst[11] = { 2,1,10,9,4,3,6,5,0,8,7 };

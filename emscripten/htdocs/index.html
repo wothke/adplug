@@ -77,20 +77,19 @@ function doOnTrackReadyToPlay(){
 	ScriptNodePlayer.getInstance().play();
 	songDisplay.redrawSongInfo();
 }
+// depending on the browser/timing the player may be ready before or after (see WASM) init(), i.e.
+// the startup sequence must handle both cases (music can only be started when
+// both the player is ready and init() has been completed..)
+var playerReady= false;		
 function doOnPlayerReady() {
-	if (playerControls) playerControls.playNextSong();
+	playerReady= true;
+	if (playerControls) playerControls.playNextSong(); // playerControls are used to check for init()
 }
 
 function init() {
 	// --------------------------- AdPlug music player -----------------------
 	var basePath= '';		// not needed here
-	// preload all the intrastructure files so we won't run into async load issues later
-	var files = [
-		"res/icepatch.003",		// needed for SCI - HACK: each SCI file needs its own *patch.003 file, i.e. when used in a playlist 1st list the .003 file so it gets loaded
-		"res/insts.dat",		// needed for KSM
-		"res/standard.bnk",		// needed for ROL
-		"res/adplug.db"
-	];		
+	var files = [];	// no need for preload anymore (AdPlugBackendAdapter now supports on demand load)
 	ScriptNodePlayer.createInstance(new AdPlugBackendAdapter(), basePath, files, true, doOnPlayerReady,
 										doOnTrackReadyToPlay, doOnTrackEnd);
 		
@@ -112,6 +111,7 @@ function init() {
 		'music/TU_BLESS.AMD',
 		'music/VIB_VOL3.D00',
 		'music/ZAKMIX4.D00',
+		
 	];
 	playerControls= new BasicPlayerControls(songs, true, false,
 				(function(someSong) {
@@ -130,7 +130,7 @@ function init() {
 	songDisplay= new SongDisplay(new AdPlugDisplayAccessor((function(){return playerControls.getSongInfo();})), 
 								[0x78078d], 0, 0.5, (function(){playerControls.animate()}));
 
-	playerControls.playNextSong();
+	if (playerReady) playerControls.playNextSong();	// player was ready before it could trigger the playback
 }
 </script>
 <script type="text/javascript" src="stdlib/analytics.js"></script>
@@ -142,15 +142,16 @@ function init() {
 <details>
   <summary>What's this?</summary>
   <div>
-  <p>AdLibido: Experimental JavaScript/HTML5 version of <a href="http://adplug.sourceforge.net/" target="_blank">AdPlug</a>. (AdPlug plays sound data, originally created for the AdLib (OPL2) and Sound Blaster (Dual OPL2/OPL3) audio boards, directly from its original format on top of an emulator.</p>
+  <p>AdLibido: Experimental JavaScript/HTML5 version of <a href="http://adplug.sourceforge.net/" target="_blank">AdPlug</a>. (AdPlug plays 
+  sound data, originally created for the AdLib (OPL2) and Sound Blaster (Dual OPL2/OPL3) audio boards, directly from its original format on 
+  top of an emulator.</p>
  
   <p>Bring your own files by dropping them onto the OPL chip.</p>
  
   <p>2014 by Juergen Wothke  (The source code can be found <a target="_blank" href="https://github.com/wothke/">here</a>.)</p>
  
-  <p>This page does not use any plugins but is based exclusively on the draft version WebAudio API. 
-  You'll need Chrome or Firefox to make it play the music. The visual effects 
-  work best in Chrome. (If Firefox passes out - press 'reload'... it's experimental.)
+  <p>This page does not use any plugins but is based exclusively on the WebAudio API. 
+  You'll need a reasonably recent browser to make it play the music.
   
   <p>Contrarry to most other HTML5 based pages out there, the music here is NOT based on  
   OscillatorNode based waveforms or the playback of some sampledata file. Instead the samples here 
@@ -162,11 +163,14 @@ function init() {
 </details>
 <aside></aside>
 <section>
-  <div id="logo" class="logo">
-	<div id="moz-reflect-logo"><canvas  id="logoCanvas"  width="600" height="280"></canvas></div>
+  <div id="logo">
+		<!-- in new Chrome the SHIT reflections disapear dependig on the canvas height.. what a fucking joke -->
+		<div id="moz-reflect-logo"><canvas  id="logoCanvas"  width="270" height="100"></canvas></div>	
   </div>
-  <div id="spectrum" class="spectrum">
-  	<div id="moz-reflect-spectrum"><canvas id="spectrumCanvas" width="512" height="200"></canvas></div>
+  
+  <div id="spectrum" >
+		<!-- use "hight" greater than 80 and the fucking reflection is gone.. FUCK YOU IDIOTS -->
+		<div id="moz-reflect-spectrum"><canvas id="spectrumCanvas" width="800" height="80"></canvas></div>
   </div>
   <div id="drop" class="drop"><img src="yamaha_ani.gif" width=200 height=200/></div><!--see BasicPlayerControls-->
 </section>

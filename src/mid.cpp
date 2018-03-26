@@ -281,7 +281,7 @@ void CmidPlayer::sierra_next_section()
     doing=1;
 }
 
-bool CmidPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CmidPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
     binistream *f = fp.open(filename); if(!f) return false;
     int good;
@@ -302,11 +302,16 @@ bool CmidPlayer::load(const std::string &filename, const CFileProvider &fp)
             if (s[1]=='T' && s[2]=='M' && s[3]=='F') good=FILE_CMF;
             break;
         case 0x84:
-	  if (s[1]==0x00 && load_sierra_ins(filename, fp)) {
-	    if (s[2]==0xf0)
-	      good=FILE_ADVSIERRA;
-	    else
-	      good=FILE_SIERRA;
+	  if (s[1]==0x00) {
+		  if(load_sierra_ins(filename, fp)) {
+			if (s[2]==0xf0)
+			  good=FILE_ADVSIERRA;
+			else
+			  good=FILE_SIERRA;
+		  }	else {
+			fp.close(f);
+			return loadPending;	// todo: differentiate from other errors?
+		  }			  
 	  }
 	  break;
         default:

@@ -83,7 +83,7 @@ CldsPlayer::~CldsPlayer()
   if(patterns) delete [] patterns;
 }
 
-bool CldsPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CldsPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream	*f;
   unsigned int	i, j;

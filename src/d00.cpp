@@ -53,7 +53,7 @@ CPlayer *Cd00Player::factory(Copl *newopl)
   return new Cd00Player(newopl);
 }
 
-bool Cd00Player::load(const std::string &filename, const CFileProvider &fp)
+char Cd00Player::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream	*f = fp.open(filename); if(!f) return false;
   d00header	*checkhead;

@@ -91,8 +91,9 @@ CrolPlayer::~CrolPlayer()
         rol_header=NULL;
     }
 }
+
 //---------------------------------------------------------
-bool CrolPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CrolPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
     binistream *f = fp.open(filename); if(!f) return false;
 
@@ -150,7 +151,7 @@ bool CrolPlayer::load(const std::string &filename, const CFileProvider &fp)
       AdPlug_LogWrite("--- CrolPlayer::load ---\n");
 
       fp.close( f );
-      return false;
+      return loadPending;	// todo: differentiate from other errors?
     }
 
     fp.close( f );

@@ -28,6 +28,14 @@
 #include "opl.h"
 #include "database.h"
 
+enum FileLoadStatus {			// EMSCRIPTEN
+	// previously existing 
+	loadSuccess= true,
+	loadFailure= false,
+	// new status
+	loadPending= 2			// fucking joke language is too dumb to assign unique value on its own
+};
+
 class CPlayer
 {
 public:
@@ -37,7 +45,8 @@ public:
 /***** Operational methods *****/
 	void seek(unsigned long ms);
 
-	virtual bool load(const std::string &filename,	// loads file
+	// EMSCRIPTEN: changed return type from bool to char
+	virtual char load(const std::string &filename,	// loads file
 			  const CFileProvider &fp = CProvider_Filesystem()) = 0;
 	virtual bool update() = 0;			// executes replay code for 1 tick
 	virtual void rewind(int subsong = -1) = 0;	// rewinds to specified subsong
@@ -81,5 +90,7 @@ protected:
 	static const unsigned short	note_table[12];	// standard adlib note table
 	static const unsigned char	op_table[9];	// the 9 operators as expected by the OPL
 };
+
+extern CPlayer *gFileNotReadyMarker;	// EMSCRIPTEN
 
 #endif

@@ -2,14 +2,19 @@
 
 Copyright (C) 2014 Juergen Wothke
 		
-This is a JavaScript/WebAudio plugin of AdPlug. This plugin is designed to work with my 
-generic WebAudio ScriptProcessor music player (see separate project). 
+This is a JavaScript/WebAudio plugin of AdPlug. This plugin is designed to work with my generic WebAudio 
+ScriptProcessor music player (see separate project) but the API exposed by the lib can be used in any 
+JavaScript program (it should look familiar to anyone that has ever done some sort of music player plugin). 
 
-AdLibido is based on "adplug-2.2.1". Some unused folders have been completely removed: "adplugdb", doc", "test". The "libbinio" dependency has dierectly been included. 
+AdLibido is based on "adplug-2.2.1". Some unused folders have been completely removed: "adplugdb", doc", "test". The "libbinio" 
+dependency has directly been included. 
 
 Everything needed for the WebAudio version is contained in this "emscripten" folder. The 
-original AdPlug code is completely unchanged (except for required bug fixes), i.e. should be trivial to merge future AdPlug 
-fixes or updates.
+original AdPlug code is mostly unchanged (except for required bug fixes & minor API changes to allow for the propagation of 
+"file not ready" information), i.e. should be trivial to merge future AdPlug fixes or updates.
+
+The lib supports loading of remote music files (also multi-part files) and is equipped with respective 
+asynchronous "load on demand" logic.
 
 
 ## Howto build
@@ -29,24 +34,9 @@ document folder of a web server (this running example shows how the code is used
 
 
 ## Dependencies
-The current version requires version 1.02 (older versions will not
-support WebAssembly) of my https://github.com/wothke/webaudio-player.
+Recommended use of version 1.03 of my https://github.com/wothke/webaudio-player (older versions will not
+support WebAssembly and the playback of remote files)
 
-
-## Background information
-Because the original implementation was not touched, the code doesn't cope with the async file 
-loading approach normally taken by web apps. (You might want to have a look at my WebUADE for an 
-example of a lib that has been patched to deal with load-on-demand..) This means that whenever 
-some portion of the library tries to load something this cannot be handled as a load-on-demand 
-but the respective file must already have been loaded previously - so that it is immediately 
-available when the lib looks for it.
-
-Fortunately ApPlug makes little use of additional file loading and most of it can be dealt with
-by doing a simple pre-load, e.g. "insts.dat" (needed for KSM), "standard.bnk" (needed for ROL?),
-"adplug.db" (see "htdocs/res" folder). The only problematic case seems to be the "SCI" player 
-because it relies on "*patch.003" files that are actually specific to each music file. As a 
-workaround I'd suggest to include the respective resource files in your playlist such that they 
-will get loaded before the music file that depends on it.
 
 ## License
 This library is free software; you can redistribute it and/or modify it

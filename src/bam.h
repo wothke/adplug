@@ -32,7 +32,7 @@ public:
 	~CbamPlayer()
 	{ if(song) delete [] song; };
 
-	bool load(const std::string &filename, const CFileProvider &fp);
+	char load(const std::string &filename, const CFileProvider &fp);
 	bool update();
 	void rewind(int subsong);
 	float getrefresh()

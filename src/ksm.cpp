@@ -40,7 +40,7 @@ CPlayer *CksmPlayer::factory(Copl *newopl)
   return new CksmPlayer(newopl);
 }
 
-bool CksmPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CksmPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream	*f;
   int		i;
@@ -66,7 +66,8 @@ bool CksmPlayer::load(const std::string &filename, const CFileProvider &fp)
   if(!f) {
     AdPlug_LogWrite("Couldn't open instruments file! Aborting!\n");
     AdPlug_LogWrite("--- CksmPlayer::load ---\n");
-    return false;
+	return loadPending;	// todo: differentiate from other errors?
+//    return false;
   }
   loadinsts(f);
   fp.close(f);

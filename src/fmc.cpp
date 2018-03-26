@@ -29,7 +29,7 @@ CPlayer *CfmcLoader::factory(Copl *newopl)
   return new CfmcLoader(newopl);
 }
 
-bool CfmcLoader::load(const std::string &filename, const CFileProvider &fp)
+char CfmcLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   const unsigned char conv_fx[16] = {0,1,2,3,4,8,255,255,255,255,26,11,12,13,14,15};

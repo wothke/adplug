@@ -30,7 +30,7 @@ CPlayer *CdfmLoader::factory(Copl *newopl)
   return new CdfmLoader(newopl);
 }
 
-bool CdfmLoader::load(const std::string &filename, const CFileProvider &fp)
+char CdfmLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   unsigned char		npats,n,note,fx,c,r,param;

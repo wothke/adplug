@@ -30,7 +30,7 @@ CPlayer *CmkjPlayer::factory(Copl *newopl)
   return new CmkjPlayer(newopl);
 }
 
-bool CmkjPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CmkjPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   char	id[6];

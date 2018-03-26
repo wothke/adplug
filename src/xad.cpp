@@ -35,7 +35,7 @@ CxadPlayer::~CxadPlayer()
     delete [] tune;
 }
 
-bool CxadPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CxadPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   bool ret = false;

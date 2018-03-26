@@ -41,7 +41,7 @@ class Cdro2Player: public CPlayer
 		Cdro2Player(Copl *newopl);
 		~Cdro2Player();
 
-		bool load(const std::string &filename, const CFileProvider &fp);
+		char load(const std::string &filename, const CFileProvider &fp);
 		bool update();
 		void rewind(int subsong);
 		float getrefresh();

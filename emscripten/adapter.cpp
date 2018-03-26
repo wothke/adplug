@@ -18,6 +18,10 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 */
 
+// Note: implementation approach; changed return value of CPlayer.load() from bool to char
+// to let multi-file songs signal if a required file is not ready yet.. the info is then propagated 
+// to the below "emu_init" using gFileNotReadyMarker. (also see EMSCRIPTEN comments)
+
 #include "../src/adplug.h"
 #include "../src/opl.h"
 #include "../src/emuopl.h"
@@ -27,6 +31,21 @@
 
 #include <stdio.h>
 #include <emscripten.h>
+
+
+#include "player.h"
+
+class FileNotReadyMarker: public CPlayer {
+ public:
+  FileNotReadyMarker() : CPlayer(0) {}
+  ~FileNotReadyMarker() {}
+
+  char load(const std::string &filename, const CFileProvider &fp) { return false; }
+  bool update() { return false; }
+  void rewind(int subsong = -1) {}
+  float getrefresh() { return 0.0f; }
+  std::string gettype() { return std::string("File not ready marker"); }
+};
 
 #ifdef EMSCRIPTEN
 #define EMSCRIPTEN_KEEPALIVE __attribute__((used))
@@ -51,6 +70,7 @@ char tracks_str[NUM_MAX];
 char speed_str[NUM_MAX];
 
 CAdPlugDatabase *db= 0;
+CPlayer *gFileNotReadyMarker;
 
 struct StaticBlock {
     StaticBlock(){
@@ -60,6 +80,8 @@ struct StaticBlock {
 		infoTexts[3]= type_str;
 		infoTexts[4]= speed_str;
 		infoTexts[5]= tracks_str;
+		
+		gFileNotReadyMarker= new FileNotReadyMarker();
     }
 };
 
@@ -92,10 +114,15 @@ extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, cha
 	// initialize output & player
 	player->get_opl()->init();
 	player->p = CAdPlug::factory(fn, player->get_opl());
-		
+	if (gFileNotReadyMarker == player->p) {
+		player->p= 0;
+		return -1;	// try again later
+	} else {
+	}
+			
 	if (db == 0) {
 		db= new CAdPlugDatabase();
-		db->load("addplug.db");
+//		db->load("addplug.db");		unused
 	}
 	CAdPlug::set_database(db);
 	

@@ -30,7 +30,7 @@ CPlayer *CradLoader::factory(Copl *newopl)
   return new CradLoader(newopl);
 }
 
-bool CradLoader::load(const std::string &filename, const CFileProvider &fp)
+char CradLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   char id[16];

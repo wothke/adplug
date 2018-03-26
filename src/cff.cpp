@@ -37,7 +37,7 @@ CPlayer *CcffLoader::factory(Copl *newopl)
   return new CcffLoader(newopl);
 }
 
-bool CcffLoader::load(const std::string &filename, const CFileProvider &fp)
+char CcffLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   const unsigned char conv_inst[11] = { 2,1,10,9,4,3,6,5,0,8,7 };

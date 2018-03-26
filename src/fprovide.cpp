@@ -53,8 +53,18 @@ unsigned long CFileProvider::filesize(binistream *f)
 
 /***** CProvider_Filesystem *****/
 
+// implemented on JavaScript side (also see callback.js) for "on-demand" file load:
+extern "C" int adlib_request_file(const char *filename);
+
 binistream *CProvider_Filesystem::open(std::string filename) const
 {
+#ifdef EMSCRIPTEN
+		int r= adlib_request_file(filename.c_str());	// trigger load & check if ready
+		if (r <0) {
+			return 0; // file not ready
+		}
+#endif	
+	
   binifstream *f = new binifstream(filename);
 
   if(!f) return 0;

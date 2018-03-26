@@ -42,7 +42,7 @@ CPlayer *CadtrackLoader::factory(Copl *newopl)
   return new CadtrackLoader(newopl);
 }
 
-bool CadtrackLoader::load(const std::string &filename, const CFileProvider &fp)
+char CadtrackLoader::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   binistream *instf;
@@ -62,7 +62,10 @@ bool CadtrackLoader::load(const std::string &filename, const CFileProvider &fp)
   AdPlug_LogWrite("CadtrackLoader::load(,\"%s\"): Checking for \"%s\"...\n",
 		  filename.c_str(), instfilename.c_str());
   instf = fp.open(instfilename);
-  if(!instf || fp.filesize(instf) != 468) { fp.close(f); return false; }
+  if(!instf || fp.filesize(instf) != 468) { 
+	fp.close(f); 
+	return instf ? false : loadPending; 
+  }
 
   // give CmodPlayer a hint on what we're up to
   realloc_patterns(1,1000,9); realloc_instruments(9); realloc_order(1);

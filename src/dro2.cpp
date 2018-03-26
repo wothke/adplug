@@ -42,7 +42,7 @@ Cdro2Player::~Cdro2Player()
 	if (this->piConvTable) delete[] this->piConvTable;
 }
 
-bool Cdro2Player::load(const std::string &filename, const CFileProvider &fp)
+char Cdro2Player::load(const std::string &filename, const CFileProvider &fp)
 {
 	binistream *f = fp.open(filename);
 	if (!f) return false;

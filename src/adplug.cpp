@@ -145,25 +145,33 @@ CPlayer *CAdPlug::factory(const std::string &fn, Copl *opl, const CPlayers &pl,
       if(fp.extension(fn, (*i)->get_extension(j))) {
 	AdPlug_LogWrite("Trying direct hit: %s\n", (*i)->filetype.c_str());
 	if((p = (*i)->factory(opl))) {
-	  if(p->load(fn, fp)) {
+	  char r;
+	  if((r= p->load(fn, fp)) == loadSuccess) {
 	    AdPlug_LogWrite("got it!\n");
 	    AdPlug_LogWrite("--- CAdPlug::factory ---\n");
 	    return p;
-	  } else
+	  } else {
 	    delete p;
+		if (r == loadPending) {
+			return gFileNotReadyMarker;	// EMSCRIPTEN
+		}
+	  }
 	}
-      }
+  }
 
   // Try all players, one by one
   for(i = pl.begin(); i != pl.end(); i++) {
     AdPlug_LogWrite("Trying: %s\n", (*i)->filetype.c_str());
     if((p = (*i)->factory(opl))) {
-      if(p->load(fn, fp)) {
+	  char r;
+      if((r= p->load(fn, fp)) == loadSuccess) {
         AdPlug_LogWrite("got it!\n");
         AdPlug_LogWrite("--- CAdPlug::factory ---\n");
-	return p;
-      } else
-	delete p;
+		return p;
+      } else {
+		delete p;
+		if (r == loadPending) return gFileNotReadyMarker;	// EMSCRIPTEN
+	  }
     }
   }
 

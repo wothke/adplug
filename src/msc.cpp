@@ -63,7 +63,7 @@ CmscPlayer::~CmscPlayer()
     delete [] desc;
 }
 
-bool CmscPlayer::load(const std::string & filename, const CFileProvider & fp)
+char CmscPlayer::load(const std::string & filename, const CFileProvider & fp)
 {
   binistream * 	bf;
   msc_header	hdr;

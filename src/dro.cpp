@@ -44,7 +44,7 @@ CdroPlayer::CdroPlayer(Copl *newopl)
     opl3_mode = 1;
 }
 
-bool CdroPlayer::load(const std::string &filename, const CFileProvider &fp)
+char CdroPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   char id[8];
