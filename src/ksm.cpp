@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * ksm.cpp - KSM Player for AdPlug by Simon Peter <dn.tlp@gmx.net>
  */
@@ -50,6 +50,7 @@ char CksmPlayer::load(const std::string &filename, const CFileProvider &fp)
   if(!fp.extension(filename, ".ksm")) {
     AdPlug_LogWrite("CksmPlayer::load(,\"%s\"): File doesn't have '.ksm' "
 		    "extension! Rejected!\n", filename.c_str());
+    delete [] fn;
     return false;
   }
   AdPlug_LogWrite("*** CksmPlayer::load(,\"%s\") ***\n", filename.c_str());

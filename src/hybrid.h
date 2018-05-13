@@ -14,9 +14,15 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * [xad] HYBRID player, by Riven the Mage <riven@ok.ru>
+ */
+
+/*
+ * Copyright (c) 2015 - 2017 Wraithverge <liam82067@yahoo.com>
+ * - Realigned to Tabs.
+ * - Added support for Speed indicator in 'File Info' dialogues.
  */
 
 #include "xad.h"
@@ -72,6 +78,9 @@ protected:
   std::string     xadplayer_gettype();
   std::string     xadplayer_getinstrument(unsigned int i);
   unsigned int    xadplayer_getinstruments();
+
+	// Wraithverge: added this.
+	unsigned int    xadplayer_getspeed();
 
 private:
   static const unsigned char hyb_adlib_registers[99];

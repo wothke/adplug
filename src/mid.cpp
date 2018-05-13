@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *
  * MIDI & MIDI-like file player - Last Update: 10/15/2005
@@ -89,6 +89,15 @@
 void CmidPlayer::midiprintf(const char *format, ...)
     {
     }
+#endif
+
+#if !defined(UINT8_MAX)
+typedef signed char    int8_t;
+typedef short          int16_t;
+typedef int            int32_t;
+typedef unsigned char  uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int   uint32_t;
 #endif
 
 #define LUCAS_STYLE   1
@@ -206,7 +215,7 @@ bool CmidPlayer::load_sierra_ins(const std::string &fname, const CFileProvider &
         for (k=0; k<48; k++)
             {
             l=i*48+k;
-            midiprintf ("\n%2d: ",l);
+            midiprintf ("\n%2ld: ",l);
             for (j=0; j<28; j++)
                 ins[j] = f->readInt(1);
 
@@ -260,6 +269,8 @@ void CmidPlayer::sierra_next_section()
        {
        getnext(1);
        curtrack=j; j++;
+       if (curtrack >= 16)
+         break;
        track[curtrack].on=1;
 	   track[curtrack].spos = getnext(1);
 	   track[curtrack].spos += (getnext(1) << 8) + 4;	//4 best usually +3? not 0,1,2 or 5
@@ -267,7 +278,7 @@ void CmidPlayer::sierra_next_section()
        track[curtrack].tend=flen; //0xFC will kill it
        track[curtrack].iwait=0;
        track[curtrack].pv=0;
-       midiprintf ("track %d starts at %lx\n",curtrack,track[curtrack].spos);
+       midiprintf ("track %u starts at %lx\n",curtrack,track[curtrack].spos);
 
        getnext(2);
        i=getnext(1);
@@ -286,8 +297,10 @@ char CmidPlayer::load(const std::string &filename, const CFileProvider &fp)
     binistream *f = fp.open(filename); if(!f) return false;
     int good;
     unsigned char s[6];
+    uint32_t size;
 
     f->readString((char *)s, 6);
+    size = *(uint32_t *)s; // size of FILE_OLDLUCAS
     good=0;
     subsongs=0;
     switch(s[0])
@@ -315,7 +328,7 @@ char CmidPlayer::load(const std::string &filename, const CFileProvider &fp)
 	  }
 	  break;
         default:
-            if (s[4]=='A' && s[5]=='D') good=FILE_OLDLUCAS;
+            if (size == fp.filesize(f) && s[4]=='A' && s[5]=='D') good=FILE_OLDLUCAS;
             break;
         }
 
@@ -498,7 +511,7 @@ bool CmidPlayer::update()
         track[curtrack].pv=(unsigned char)v;
 
 		c=v&0x0f;
-        midiprintf ("[%2X]",v);
+        midiprintf ("[%2lX]",v);
         switch(v&0xf0)
             {
 			case 0x80: /*note off*/
@@ -599,7 +612,7 @@ bool CmidPlayer::update()
                         chp[on][2]=0;
                     }
                   }
-                  midiprintf(" [%d:%d:%d:%d]\n",c,ch[c].inum,note,vel);
+                  midiprintf(" [%d:%d:%ld:%ld]\n",c,ch[c].inum,note,vel);
                 }
                 else
                 midiprintf ("off");
@@ -619,7 +632,7 @@ midi_fm_playnote(i,note+cnote[c],my_midi_fm_vol_table[(cvols[c]*vel)/128]*2);
                 switch(ctrl)
                     {
                     case 0x07:
-                        midiprintf ("(pb:%d: %d %d)",c,ctrl,vel);
+                        midiprintf ("(pb:%d: %ld %ld)",c,ctrl,vel);
                         ch[c].vol=vel;
                         midiprintf("vol");
                         break;
@@ -641,7 +654,7 @@ midi_fm_playnote(i,note+cnote[c],my_midi_fm_vol_table[(cvols[c]*vel)/128]*2);
                         }
                         break;
                     case 0x67:
-                        midiprintf("Rhythm mode: %d\n", vel);
+                        midiprintf("Rhythm mode: %ld\n", vel);
                         if ((adlib_style&CMF_STYLE)!=0) {
 			  adlib_mode=vel;
 			  if(adlib_mode == ADLIB_RYTHM)
@@ -673,7 +686,7 @@ midi_fm_playnote(i,note+cnote[c],my_midi_fm_vol_table[(cvols[c]*vel)/128]*2);
 		      l=getval();
 		      if (datalook(pos+l)==0xf7)
 			i=1;
-		      midiprintf("{%d}",l);
+		      midiprintf("{%ld}",l);
 		      midiprintf("\n");
 
                         if (datalook(pos)==0x7d &&
@@ -719,7 +732,7 @@ midi_fm_playnote(i,note+cnote[c],my_midi_fm_vol_table[(cvols[c]*vel)/128]*2);
                             {
                             midiprintf("\n");
                             for (j=0; j<l; j++)
-                                midiprintf ("%2X ",getnext(1));
+                                midiprintf ("%2lX ",getnext(1));
                             }
 
                         midiprintf("\n");
@@ -748,7 +761,7 @@ midi_fm_playnote(i,note+cnote[c],my_midi_fm_vol_table[(cvols[c]*vel)/128]*2);
                             type == FILE_ADVSIERRA)
                             {
                             track[curtrack].tend=pos;
-                            midiprintf ("endmark: %ld -- %lx\n",pos,pos);
+                            midiprintf ("endmark: %lu -- %lx\n",pos,pos);
                             }
                         break;
                     case 0xfe:
@@ -759,7 +772,7 @@ midi_fm_playnote(i,note+cnote[c],my_midi_fm_vol_table[(cvols[c]*vel)/128]*2);
                         v=getnext(1);
                         l=getval();
                         midiprintf ("\n");
-                        midiprintf("{%X_%X}",v,l);
+                        midiprintf("{%lX_%lX}",v,l);
                         if (v==0x51)
                             {
                             lnum=getnext(l);
@@ -769,12 +782,12 @@ midi_fm_playnote(i,note+cnote[c],my_midi_fm_vol_table[(cvols[c]*vel)/128]*2);
                             else
                             {
                             for (i=0; i<l; i++)
-                                midiprintf ("%2X ",getnext(1));
+                                midiprintf ("%2lX ",getnext(1));
                             }
                         break;
 					}
                 break;
-            default: midiprintf("!",v); /* if we get down here, a error occurred */
+            default: midiprintf("%lX!",v); /* if we get down here, a error occurred */
 			break;
             }
 
@@ -837,7 +850,7 @@ fwait=1.0f/(((float)iwait/(float)deltas)*((float)msqtr/(float)1000000));
     for (i=0; i<16; i++)
       if (track[i].on) {
 	if (track[i].pos < track[i].tend)
-	  midiprintf ("<%d>",track[i].iwait);
+	  midiprintf ("<%lu>",track[i].iwait);
 	else
 	  midiprintf("stop");
       }
@@ -874,7 +887,7 @@ void CmidPlayer::rewind(int subsong)
     adlib_style=MIDI_STYLE|CMF_STYLE;
     adlib_mode=ADLIB_MELODIC;
     for (i=0; i<128; i++)
-        for (j=0; j<16; j++)
+        for (j=0; j<14; j++)
             myinsbank[i][j]=midi_fm_instruments[i][j];
 	for (i=0; i<16; i++)
         {
@@ -933,7 +946,7 @@ void CmidPlayer::rewind(int subsong)
                 track[curtrack].on=1;
                 track[curtrack].tend=getnext(4);
                 track[curtrack].spos=pos;
-                midiprintf ("tracklen:%ld\n",track[curtrack].tend);
+                midiprintf ("tracklen:%lu\n",track[curtrack].tend);
                 break;
             case FILE_CMF:
                 getnext(3);  // ctmf
@@ -956,13 +969,13 @@ void CmidPlayer::rewind(int subsong)
                 if (i>128) i=128; // to ward of bad numbers...
                 getnexti(2); //basic tempo
 
-                midiprintf("\nioff:%d\nmoff%d\ndeltas:%ld\nmsqtr:%ld\nnumi:%d\n",
+                midiprintf("\nioff:%ld\nmoff%ld\ndeltas:%ld\nmsqtr:%ld\nnumi:%ld\n",
                     n,m,deltas,msqtr,i);
                 pos=n;  // jump to instruments
                 tins=i;
                 for (j=0; j<i; j++)
                     {
-                    midiprintf ("\n%d: ",j);
+                    midiprintf ("\n%ld: ",j);
                     for (l=0; l<16; l++)
                         {
                         myinsbank[j][l]=(unsigned char)getnext(1);
@@ -990,7 +1003,7 @@ void CmidPlayer::rewind(int subsong)
                 tins=i;
                 for (j=0; j<i; j++)
                     {
-                    midiprintf ("\n%d: ",j);
+                    midiprintf ("\n%ld: ",j);
                     for (l=0; l<16; l++)
                         ins[l]=(unsigned char)getnext(1);
 
@@ -1035,7 +1048,7 @@ void CmidPlayer::rewind(int subsong)
 
                 o_sierra_pos=sierra_pos=pos;
                 sierra_next_section();
-                while (datalook(sierra_pos-2)!=0xff)
+                while (datalook(sierra_pos-2) != 0xff && pos < flen)
                     {
                     sierra_next_section();
                     subsongs++;

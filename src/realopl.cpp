@@ -14,32 +14,37 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * realopl.cpp - Real hardware OPL, by Simon Peter <dn.tlp@gmx.net>
+ *             - Linux support by Tomas Pollak <tomas@forkhq.com>
  */
 
 #ifdef _MSC_VER			// Microsoft Visual C++
+  #if (_MSC_VER >= 1900) // VS2015+
+  // _inp and _outp are no longer part of the C runtime from VS2015/Win8.1
+  int INP(int dummy) { return 0; }
+  void OUTP(int dummy, int dummy2) { return; }
+  #else // _MSC_VER < 1900
 #	include <conio.h>
 #	define INP	_inp
 #	define OUTP	_outp
+  #endif // _MSC_VER < 1900
 #elif defined(__WATCOMC__)	// Watcom C/C++ and OpenWatcom
 #	include <conio.h>
 #	define INP	inp
 #	define OUTP	outp
 #elif defined(WIN32) && defined(__MSVCRT__) && defined(__MINGW32__)	// MinGW32
-/*
-int __cdecl _inp(unsigned short);
-int __cdecl _outp(unsigned short, int);
-#	define INP	_inp
-#	define OUTP	_outp
-*/
 #	define INP		inb
 #	define OUTP(reg, val)	outb(val, reg)
 #elif defined(DJGPP)		// DJGPP
 #	include <pc.h>
 #	define INP	inportb
 #	define OUTP	outportb
+#elif defined(linux) && defined(HAVE_SYS_IO_H)
+  # include <sys/io.h>
+  # define INP inb
+  # define OUTP(reg,val) outb(val,reg)
 #else				// no support on other platforms
 #	define INP(reg)		0
 #	define OUTP(reg, val)
@@ -54,23 +59,20 @@ const unsigned char CRealopl::op_table[9] =
   {0x00, 0x01, 0x02, 0x08, 0x09, 0x0a, 0x10, 0x11, 0x12};
 
 #if defined(WIN32) && defined(__MINGW32__)
-static __inline unsigned char inb(unsigned short int port)
-{
+static __inline unsigned char inb(unsigned short int port) {
   unsigned char _v;
 
   __asm__ __volatile__ ("inb %w1,%0":"=a" (_v):"Nd" (port));
   return _v;
 }
 
-static __inline void outb(unsigned char value, unsigned short int port)
-{
+static __inline void outb(unsigned char value, unsigned short int port) {
   __asm__ __volatile__ ("outb %b0,%w1": :"a" (value), "Nd" (port));
 }
 #endif
 
 CRealopl::CRealopl(unsigned short initport)
-  : adlport(initport), hardvol(0), bequiet(false), nowrite(false)
-{
+  : adlport(initport), hardvol(0), bequiet(false), nowrite(false) {
   for(int i=0;i<22;i++) {
     hardvols[0][i][0] = 0;
     hardvols[0][i][1] = 0;
@@ -81,8 +83,7 @@ CRealopl::CRealopl(unsigned short initport)
   currType = TYPE_OPL3;
 }
 
-bool CRealopl::harddetect()
-{
+bool CRealopl::harddetect() {
   unsigned char		stat1, stat2, i;
   unsigned short	adp = (currChip == 0 ? adlport : adlport + 2);
 
@@ -100,8 +101,7 @@ bool CRealopl::harddetect()
     return false;
 }
 
-bool CRealopl::detect()
-{
+bool CRealopl::detect() {
   unsigned char	stat;
 
   setchip(0);
@@ -115,17 +115,20 @@ bool CRealopl::detect()
       setchip(1);
       if(harddetect())
 	currType = TYPE_DUAL_OPL2;
-    } else
+
+    } else {
       currType = TYPE_OPL3;
+    }
 
     setchip(0);
     return true;
-  } else
+
+  } else {
     return false;
 }
+}
 
-void CRealopl::setvolume(int volume)
-{
+void CRealopl::setvolume(int volume) {
   int i, j;
 
   hardvol = volume;
@@ -137,8 +140,7 @@ void CRealopl::setvolume(int volume)
     }
 }
 
-void CRealopl::setquiet(bool quiet)
-{
+void CRealopl::setquiet(bool quiet) {
   bequiet = quiet;
 
   if(quiet) {
@@ -148,10 +150,21 @@ void CRealopl::setquiet(bool quiet)
     setvolume(oldvol);
 }
 
-void CRealopl::hardwrite(int reg, int val)
-{
+void CRealopl::hardwrite(int reg, int val) {
   int 			i;
   unsigned short	adp = (currChip == 0 ? adlport : adlport + 2);
+
+  if (nowrite)
+    return;
+
+#if defined(linux) && defined(HAVE_SYS_IO_H) // see whether we can access the port
+  if (!gotperms) {
+    if ((ioperm(adlport, 2, 1) != 0) || (ioperm(adlport + 2, 2, 1) != 0)) {
+      return;
+    }
+    gotperms = true;
+  }
+#endif
 
   OUTP(adp,reg);		// set register
   for(i=0;i<SHORTDELAY;i++)	// wait for adlib
@@ -161,8 +174,7 @@ void CRealopl::hardwrite(int reg, int val)
     INP(adp);
 }
 
-void CRealopl::write(int reg, int val)
-{
+void CRealopl::write(int reg, int val) {
   int i;
 
   if(nowrite)
@@ -181,22 +193,26 @@ void CRealopl::write(int reg, int val)
     for(i=0;i<9;i++) {
       if(reg == 0x43 + op_table[i])
 	val = ((val & 63) + hardvol) > 63 ? 63 : val + hardvol;
-      else
-	if((reg == 0x40 + op_table[i]) && (hardvols[currChip][i][1] & 1))
+      else if ((reg == 0x40 + op_table[i]) && (hardvols[currChip][i][1] & 1))
 	  val = ((val & 63) + hardvol) > 63 ? 63 : val + hardvol;
     }
 
   hardwrite(reg,val);
 }
 
-void CRealopl::init()
-{
+void CRealopl::init() {
   int i, j;
 
   for(j = 0; j < 2; j++) {
     setchip(j);
 
-    for(i=0;i<9;i++) {				// stop instruments
+    // set all registers to zero
+    for (i = 0; i < 256; i++) {
+      write(i, 0);
+    }
+
+    // stop instruments
+    for (i = 0; i < 9; i++) {
       hardwrite(0xb0 + i,0);			// key off
       hardwrite(0x80 + op_table[i],0xff);	// fastest release
     }

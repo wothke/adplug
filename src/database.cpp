@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * database.cpp - AdPlug database class
  * Copyright (c) 2002 Riven the Mage <riven@ok.ru>
@@ -326,7 +326,7 @@ void CAdPlugDatabase::CKey::make(binistream &buf)
   static const unsigned short magic16 = 0xa001;
   static const unsigned long  magic32 = 0xedb88320;
 
-  crc16 = 0; crc32 = ~0;
+  crc16 = 0; crc32 = 0xffffffffL;
 
   while(!buf.eof())
     {
@@ -350,6 +350,7 @@ void CAdPlugDatabase::CKey::make(binistream &buf)
 
   crc16 &= 0xffff;
   crc32  = ~crc32;
+  crc32 &= 0xffffffffL;
 }
 
 /***** CInfoRecord *****/

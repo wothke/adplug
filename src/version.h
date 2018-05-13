@@ -1,0 +1,1 @@
+#define ADPLUG_VERSION "pre 2.3.1 (HEAD 13.5.2018)"

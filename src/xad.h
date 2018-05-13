@@ -14,10 +14,16 @@
 
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
   xad.h - XAD shell player by Riven the Mage <riven@ok.ru>
 */
+
+/*
+ * Copyright (c) 2015 - 2017 Wraithverge <liam82067@yahoo.com>
+ * - Realigned to Tabs.
+ * - Added support for Speed indicator in 'File Info' dialogues.
+ */
 
 #ifndef H_ADPLUG_XAD
 #define H_ADPLUG_XAD
@@ -43,6 +49,9 @@ public:
         std::string     getinstrument(unsigned int i);
         unsigned int    getinstruments();
 
+	// Wraithverge: added this.
+	unsigned int    getspeed();
+
 protected:
 	virtual void xadplayer_rewind(int subsong) = 0;
 	virtual bool xadplayer_load() = 0;
@@ -65,6 +74,12 @@ protected:
 	  {
 	    return 0;
 	  }
+
+	// Wraithverge: added this.
+	virtual unsigned int xadplayer_getspeed()
+	{
+		return 0;
+	}
 
 	enum { HYP=1, PSI, FLASH, BMF, RAT, HYBRID };
 

@@ -50,7 +50,7 @@ typedef unsigned char (*OPL_PORTHANDLER_R)(int param);
 /* ---------- OPL one of slot  ---------- */
 typedef struct fm_opl_slot {
 	INT32 TL;		/* total level     :TL << 8            */
-	INT32 TLL;		/* adjusted now TL                     */
+	INT32	TLL;		/* adjusted now TL				*/
 	UINT8  KSR;		/* key scale rate  :(shift down bit)   */
 	INT32 *AR;		/* attack rate     :&AR_TABLE[AR<<2]   */
 	INT32 *DR;		/* decay rate      :&DR_TALBE[DR<<2]   */
@@ -106,7 +106,7 @@ typedef struct fm_opl_f {
 	UINT32 mode;		/* Reg.08 : CSM , notesel,etc.       */
 	/* Timer */
 	int T[2];			/* timer counter                     */
-	UINT8 st[2];		/* timer enable                      */
+	UINT8	st[2];					/* timer enable					*/
 	/* FM channel slots */
 	OPL_CH *P_CH;		/* pointer of CH                     */
 	int	max_ch;			/* maximum channel                   */

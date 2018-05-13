@@ -24,7 +24,14 @@
 
 #include "../src/adplug.h"
 #include "../src/opl.h"
-#include "../src/emuopl.h"
+
+
+// note: to use one of the other OPL impls respective .cpp files must be added in the makeEmscripten.bat
+//#include "../src/emuopl.h"	// CEmuopl: old MAME impl
+//#include "../src/nemuopl.h"	// CNemuopl: Nuked OPL3 emulator
+#include "../src/wemuopl.h"		// CWemuopl: new WoodyOPL
+
+
 #include "../src/database.h"
 
 #include "output.h"
@@ -58,7 +65,7 @@ class FileNotReadyMarker: public CPlayer {
 #define NUM_MAX	15
 
 short	*outputBuffer=0;
-CEmuopl	*opl= 0;
+Copl	*opl= 0;
 BufPlayer	*player= 0;
 const char* infoTexts[6];
 
@@ -108,7 +115,11 @@ extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, cha
 		
 	std::string	fn = std::string(basedir) + songmodule;  
 
-	opl = new CEmuopl(sample_rate, true, true);
+//	opl = new CEmuopl(sample_rate, true, true);	// has issues with 2 channel output
+//	opl = new CNemuopl(sample_rate);
+	opl = new CWemuopl(sample_rate, true, true);
+	
+	
 	player= new BufPlayer(opl, 16, 2, sample_rate, BUF_SIZE);
 	
 	// initialize output & player

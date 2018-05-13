@@ -14,9 +14,20 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * [xad] HYBRID player, by Riven the Mage <riven@ok.ru>
+ */
+
+/*
+ * Copyright (c) 2015 - 2017 Wraithverge <liam82067@yahoo.com>
+ * - Realigned to Tabs.
+ * - Added support for Speed indicator in 'File Info' dialogues.
+ * - Refactored timing per all MiG-29 songs (*.ETD).
+ * - Corrected 'type' string.
+ *
+ * Note: all *.ETD files require a header to be prefixed, plus their
+ * extension be changed to ".XAD", before this player can handle them.
  */
 
 /*
@@ -24,12 +35,15 @@
 
   file(s) : HYBRID.EXE
      type : Hybrid cracktro for Apache Longbow CD-RIP
-     tune : from 'Mig-29 Super Fulcrum' game by Domark
-   player : from 'Mig-29 Super Fulcrum' game by Domark
+     tune : from 'MiG-29M Super Fulcrum' game by Domark
+   player : from 'MiG-29M Super Fulcrum' game by Domark
 */
 
 #include "hybrid.h"
+// Wraithverge: added DEBUG PPD.
+#ifdef DEBUG
 #include "debug.h"
+#endif
 
 const unsigned char CxadhybridPlayer::hyb_adlib_registers[99] = 
 {
@@ -69,8 +83,7 @@ CPlayer *CxadhybridPlayer::factory(Copl *newopl)
 
 bool CxadhybridPlayer::xadplayer_load()
 {
-  if(xad.fmt != HYBRID)
-    return false;
+	if(xad.fmt != HYBRID) return false;
 
   // load instruments
   hyb.inst = (hyb_instrument *)&tune[0];
@@ -83,7 +96,7 @@ bool CxadhybridPlayer::xadplayer_load()
 
 void CxadhybridPlayer::xadplayer_rewind(int subsong)
 {
-  int i;
+	int i = 0;
 
   hyb.order_pos = 0;
   hyb.pattern_pos = 0;
@@ -118,11 +131,10 @@ void CxadhybridPlayer::xadplayer_rewind(int subsong)
 
 void CxadhybridPlayer::xadplayer_update()
 {
-  int i,j;
+	int i = 0, j = 0;
   unsigned char patpos,ordpos;
 
-  if (--hyb.speed_counter)
-    goto update_slides;
+	if (--hyb.speed_counter) goto update_slides;
 
   hyb.speed_counter = hyb.speed;
 
@@ -156,15 +168,14 @@ void CxadhybridPlayer::xadplayer_update()
         hyb.pattern_pos = 0x3F;
 
         // jumpback ?
-        if (hyb.order_pos <= ordpos)
-          plr.looping = 1;
+			if (hyb.order_pos <= ordpos) plr.looping = 1;
 
         break;
       case 0x7F: // 0x7F: Pattern Break
         hyb.pattern_pos = 0x3F;
         break;
-      default:
 
+			default:
         // is instrument ?
         if (ins)
           for(j=0;j<11;j++)
@@ -182,8 +193,7 @@ void CxadhybridPlayer::xadplayer_update()
         {
           hyb.channel[i].freq_slide = (((slide >> 3) * -1) * (slide & 7)) << 1;
     
-          if (slide & 0x80)
-            slide = -(slide & 7);
+				if (slide & 0x80) slide = -(slide & 7);
         }
 
         // set frequency
@@ -229,12 +239,28 @@ update_slides:
 
 float CxadhybridPlayer::xadplayer_getrefresh()
 {
-  return 50.0f;
+	// Wraithverge: disabled this.
+	// return 50.0f;
+
+	// Wraithverge: most are now very close to their original tempo.
+	if (hyb.speed == 2) // Intro of MIG29_2.
+		return 34.0f; // First 4 notes (2 Flams) play slower, but why?
+	else if (hyb.speed == 5) // All of MIGWELL and MUSIC.
+		return 42.0f;
+	else if (hyb.speed == 6) // All of MIGFAIL.
+		return 43.0f;
+	else if (hyb.speed == 7) // Main loop of MIG29_2.
+		return 44.0f;
+	else
+		return 50.0f; // What Riven had set.
 }
 
 std::string CxadhybridPlayer::xadplayer_gettype()
 {
-  return (std::string("xad: hybrid player"));
+	// Wraithverge: no disrespect to Riven, but I've changed this from
+	// "xad: hybrid player", because Domark developed the original
+	// sound-engine for the songs from these two games.
+	return (std::string("xad: Domark Player"));
 }
 
 std::string CxadhybridPlayer::xadplayer_getinstrument(unsigned int i)
@@ -245,4 +271,9 @@ std::string CxadhybridPlayer::xadplayer_getinstrument(unsigned int i)
 unsigned int CxadhybridPlayer::xadplayer_getinstruments()
 {
   return 26;
+}
+
+unsigned int CxadhybridPlayer::xadplayer_getspeed()
+{
+	return hyb.speed;
 }

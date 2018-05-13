@@ -14,24 +14,44 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * dro.h - DOSBox Raw OPL Player by Sjoerd van der Berg <harekiet@zophar.net>
+ * Refactored to better match dro2.h 
+ *  by Laurence Dougal Myers <jestarjokin@jestarjokin.net>
  */
 
+/*
+ * Copyright (c) 2012 - 2017 Wraithverge <liam82067@yahoo.com>
+ * - Realigned and re-ordered sections.
+ * - Removed unused garbage.
+ * - Finalized support for displaying arbitrary Tag data.
+ */
+
+#include <stdint.h> // for uintxx_t
 #include "player.h"
 
 class CdroPlayer: public CPlayer
 {
+	protected:
+		static const uint8_t iCmdDelayS = 0x00; // Wraithverge: fixed this with "static".
+		static const uint8_t iCmdDelayL = 0x01; // Wraithverge: fixed this with "static".
+
+		uint8_t *data;
+		int iLength;
+		int iPos;
+		int iDelay;
+
+	private:
+		char title[40];
+		char author[40];
+		char desc[1023];
+
  public:
   static CPlayer *factory(Copl *newopl);
 
   CdroPlayer(Copl *newopl);
-  ~CdroPlayer()
-    {
-      if(data)
-	delete [] data;
-    }
+		~CdroPlayer();
 
   char load(const std::string &filename, const CFileProvider &fp);
   bool update();
@@ -43,10 +63,7 @@ class CdroPlayer: public CPlayer
       return std::string("DOSBox Raw OPL v0.1");
     }
 
- protected:
-  unsigned char *data;
-  unsigned long pos,length;
-  unsigned long msdone,mstotal;
-  unsigned short delay;
-  unsigned char index, opl3_mode;
+		std::string gettitle() { return std::string(title, 0, 40); };
+		std::string getauthor() { return std::string(author, 0, 40); };
+		std::string getdesc() { return std::string(desc, 0, 1023); };
 };

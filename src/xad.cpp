@@ -14,13 +14,22 @@
 
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
   xad.cpp - XAD shell player by Riven the Mage <riven@ok.ru>
 */
 
+/*
+ * Copyright (c) 2015 - 2017 Wraithverge <liam82067@yahoo.com>
+ * - Realigned to Tabs.
+ * - Added support for Speed indicator in 'File Info' dialogues.
+ */
+
 #include "xad.h"
+// Wraithverge: added DEBUG PPD.
+#ifdef DEBUG
 #include "debug.h"
+#endif
 
 /* -------- Public Methods -------------------------------- */
 
@@ -31,14 +40,14 @@ CxadPlayer::CxadPlayer(Copl * newopl) : CPlayer(newopl)
 
 CxadPlayer::~CxadPlayer()
 {
-  if (tune)
-    delete [] tune;
+	if (tune) delete[] tune;
 }
 
 char CxadPlayer::load(const std::string &filename, const CFileProvider &fp)
 {
   binistream *f = fp.open(filename); if(!f) return false;
   bool ret = false;
+	bool xad_header = true;
 
   // load header
   xad.id = f->readInt(4);
@@ -49,10 +58,32 @@ char CxadPlayer::load(const std::string &filename, const CFileProvider &fp)
   xad.reserved_a = f->readInt(1);
 
   // 'XAD!' - signed ?
-  if(xad.id != 0x21444158) { fp.close(f); return false; }
-
+	if (xad.id != 0x21444158) {
+		if ((xad.id & 0xFFFFFF) == 4607298) // 'BMF'
+		{
+			xad_header = false;
+			xad.fmt = BMF;
+		}
+		if (xad_header)
+		{
+			fp.close(f);
+			return false;
+		}
+	}
+	if (!xad_header)
+	{
+		xad.title[0] = 0;
+		xad.author[0] = 0;
+		xad.speed = 0;
+		xad.reserved_a = 0;
+		f->seek(0);
+		tune_size = fp.filesize(f);
+	}
+	else
+	{
   // get file size
   tune_size = fp.filesize(f) - 80;
+	}
 
   // load()
   tune = new unsigned char [tune_size];
@@ -61,8 +92,7 @@ char CxadPlayer::load(const std::string &filename, const CFileProvider &fp)
 
   ret = xadplayer_load();
 
-  if (ret)
-    rewind(0);
+	if (ret) rewind(0);
 
   return ret;
 }
@@ -86,8 +116,7 @@ void CxadPlayer::rewind(int subsong)
 
 bool CxadPlayer::update()
 {
-  if (--plr.speed_counter)
-    goto update_end;
+	if (--plr.speed_counter) goto update_end;
 
   plr.speed_counter = plr.speed;
 
@@ -126,6 +155,12 @@ std::string CxadPlayer::getinstrument(unsigned int i)
 unsigned int CxadPlayer::getinstruments()
 {
   return xadplayer_getinstruments();
+}
+
+// Wraithverge: added this.
+unsigned int CxadPlayer::getspeed()
+{
+	return xadplayer_getspeed();
 }
 
 /* -------- Protected Methods ------------------------------- */

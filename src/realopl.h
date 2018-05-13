@@ -14,9 +14,10 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * realopl.h - Real hardware OPL, by Simon Peter <dn.tlp@gmx.net>
+ *           - Linux support by Tomas Pollak <tomas@forkhq.com>
  */
 
 #ifndef H_ADPLUG_REALOPL
@@ -26,33 +27,30 @@
 
 #define DFL_ADLIBPORT	0x388		// default adlib baseport
 
-class CRealopl: public Copl
-{
+class CRealopl: public Copl {
  public:	
   CRealopl(unsigned short initport = DFL_ADLIBPORT);	// initport = OPL2 hardware baseport
 
   bool detect();			// returns true if adlib compatible board is found, else false
   void setvolume(int volume);		// set adlib master volume (0 - 63) 0 = loudest, 63 = softest
   void setquiet(bool quiet = true);	// sets the OPL2 quiet, while still writing to the registers
-  void setport(unsigned short port)	// set new OPL2 hardware baseport
-    {
+
+  void setport(unsigned short port) { // set new OPL2 hardware baseport
       adlport = port;
     }
-  void setnowrite(bool nw = true)	// set hardware write status
-    {
+
+  void setnowrite(bool nw = true) { // set hardware write status
       nowrite = nw;
     }
 
-  int getvolume()			// get adlib master volume
-    {
+  int getvolume() { // get adlib master volume
       return hardvol;
     }
 
   // template methods
   void write(int reg, int val);
   void init();
-  void settype(ChipType type)
-    {
+  void settype(ChipType type) {
       currType = type;
     }
 
@@ -60,13 +58,17 @@ class CRealopl: public Copl
   void hardwrite(int reg, int val);		// write to OPL2 hardware registers
   bool harddetect();				// do real hardware detection
 
-  static const unsigned char op_table[9];	// the 9 operators as expected by the OPL2
+  // the 9 operators as expected by the OPL2
+  static const unsigned char op_table[9];
 
   unsigned short	adlport;		// adlib hardware baseport
   int			hardvol, oldvol;	// hardware master volume
   bool			bequiet;		// quiet status cache
   char			hardvols[2][22][2];	// volume cache
   bool			nowrite;		// don't write to hardware, if true
+#ifdef linux
+  bool            gotperms;           // if we've requested ioperms yet
+#endif
 };
 
 #endif
