@@ -212,4 +212,8 @@ public:
 
 static Bit32u generator_add;	// should be a chip parameter
 
+#ifdef EMSCRIPTEN
+#define MAX_SCOPES 20	// either FM 9 channels or 6 FM + 5 sample components (+ additional 9 for OPL3)
+#endif
+
 #endif

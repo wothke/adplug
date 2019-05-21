@@ -968,7 +968,50 @@ static void OPL_INLINE clipit8(Bit32s ival, Bit8s* outval) {
 	outbufl[i] += chanval;
 #endif
 
+
+#ifdef EMSCRIPTEN
+// added trace output of internals: OPL has 9 channels for FM .. 3 of which (6-8) may
+// be used to create 5 predefined "drum effects" - OPL3 has 2x the channels but apparently
+// percussion is again limited to channels 6-8, i.e. 16 channel OPL3 in percussion mode has 13 (0-12)
+// regular FM channels
+
+#define OPL3_OFFSET 7	// add percussion streams after all the regular channels
+	
+#define SCOPE_PG 6		// kick
+#define SCOPE_SD 7		// snare
+#define SCOPE_TAM 8		// tom
+#define SCOPE_TOP 9		// cymbal
+#define SCOPE_HH 10		// hi hat
+
+static char scope_rythm= 0;
+static char scope_opl_channels= 0;
+static char scope_poffset= 0;
+
+char OPL_RYTHM_MODE() {
+	return scope_rythm;
+}
+
+char OPL_SCOPE_CHANNELS() {
+	return scope_rythm ? scope_opl_channels+2 : scope_opl_channels;
+}
+
+// from adapter.cpp
+extern "C" int  emu_current_buffer_pos(); 	
+extern "C" Bit32s**  emu_get_scope_buffers(); 	
+
+#endif
+
 void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
+#ifdef EMSCRIPTEN
+	scope_rythm= (adlibreg[ARC_PERC_MODE]&0x20) >> 5;
+	
+	// input "sndptr" position is managed on the caller side and to allow 
+	// respective handling of the "scope" buffers the used offset is 
+	// retrieved here (rather than touching the existing AdPlug APIs)
+	int  scope_offset= emu_current_buffer_pos();	
+	Bit32s** scope_buffer= emu_get_scope_buffers();	// buffers of same size as the one underlying sndptr
+#endif	
+
 	Bits i, endsamples;
 	op_type* cptr;
 	Bit8s* sndptr1 = (Bit8s *)sndptr;
@@ -1010,7 +1053,11 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 			else trem_lut[i] = trem_table[TREMTAB_SIZE+tremtab_pos/FIXEDPT_LFO];
 		}
 
+#ifdef EMSCRIPTEN
+		if (scope_rythm) {
+#else			
 		if (adlibreg[ARC_PERC_MODE]&0x20) {
+#endif			
 			//BassDrum
 			cptr = &op[6];
 			if (adlibreg[ARC_FEEDBACK+6]&1) {
@@ -1031,6 +1078,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 						operator_output(&cptr[9],0,tremval1[i]);
 						
 						Bit32s chanval = cptr[9].cval*2;
+#ifdef EMSCRIPTEN
+						scope_buffer[scope_poffset+SCOPE_PG][scope_offset+i]= chanval;
+#endif
 						CHANVAL_OUT
 					}
 				}
@@ -1063,6 +1113,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 						operator_output(&cptr[9],cptr[0].cval*FIXEDPT,tremval2[i]);
 						
 						Bit32s chanval = cptr[9].cval*2;
+#ifdef EMSCRIPTEN
+						scope_buffer[scope_poffset+SCOPE_PG][scope_offset+i]= chanval;
+#endif
 						CHANVAL_OUT
 					}
 				}
@@ -1086,6 +1139,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 					opfuncs[cptr[0].op_state](&cptr[0]);		//TomTom
 					operator_output(&cptr[0],0,tremval3[i]);
 					Bit32s chanval = cptr[0].cval*2;
+#ifdef EMSCRIPTEN
+					scope_buffer[scope_poffset+SCOPE_TAM][scope_offset+i]= chanval;
+#endif
 					CHANVAL_OUT
 				}
 			}
@@ -1134,6 +1190,11 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 					operator_output(&op[8+9],0,tremval4[i]);
 
 					Bit32s chanval = (op[7].cval + op[7+9].cval + op[8+9].cval)*2;
+#ifdef EMSCRIPTEN
+					scope_buffer[scope_poffset+SCOPE_HH][scope_offset+i]= op[7].cval;
+					scope_buffer[scope_poffset+SCOPE_SD][scope_offset+i]= op[7+9].cval;
+					scope_buffer[scope_poffset+SCOPE_TOP][scope_offset+i]= op[8+9].cval;
+#endif
 					CHANVAL_OUT
 				}
 			}
@@ -1143,10 +1204,21 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 #if defined(OPLTYPE_IS_OPL3)
 		if ((adlibreg[0x105]&1)==0) max_channel = NUM_CHANNELS/2;
 #endif
+
+#ifdef EMSCRIPTEN
+		scope_opl_channels= max_channel;
+		scope_poffset= (max_channel == 16) ? OPL3_OFFSET : 0;
+#endif
+
 		for (Bits cur_ch=max_channel-1; cur_ch>=0; cur_ch--) {
 			// skip drum/percussion operators
+#ifdef EMSCRIPTEN
+			if (scope_rythm && (cur_ch >= 6) && (cur_ch < 9)) continue;
+			Bits scope_ch= (scope_rythm && (cur_ch >= 9)) ? cur_ch - 3 : cur_ch;
+#else
 			if ((adlibreg[ARC_PERC_MODE]&0x20) && (cur_ch >= 6) && (cur_ch < 9)) continue;
-
+#endif			
+			
 			Bitu k = cur_ch;
 #if defined(OPLTYPE_IS_OPL3)
 			if (cur_ch < 9) {
@@ -1183,6 +1255,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[0],(cptr[0].lastcval+cptr[0].cval)*cptr[0].mfbi/2,tremval1[i]);
 
 								Bit32s chanval = cptr[0].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1209,6 +1284,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[3],cptr[9].cval*FIXEDPT,tremval2[i]);
 
 								Bit32s chanval = cptr[3].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1224,6 +1302,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[3+9],0,tremval1[i]);
 
 								Bit32s chanval = cptr[3+9].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1245,6 +1326,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[0],(cptr[0].lastcval+cptr[0].cval)*cptr[0].mfbi/2,tremval1[i]);
 
 								Bit32s chanval = cptr[0].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1277,6 +1361,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[3+9],cptr[3].cval*FIXEDPT,tremval3[i]);
 
 								Bit32s chanval = cptr[3+9].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1314,6 +1401,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 					operator_output(&cptr[9],0,tremval2[i]);
 
 					Bit32s chanval = cptr[9].cval + cptr[0].cval;
+#ifdef EMSCRIPTEN
+					scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 					CHANVAL_OUT
 				}
 			} else {
@@ -1348,6 +1438,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[9],cptr[0].cval*FIXEDPT,tremval2[i]);
 
 								Bit32s chanval = cptr[9].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1369,6 +1462,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[3+9],cptr[3].cval*FIXEDPT,tremval2[i]);
 
 								Bit32s chanval = cptr[3+9].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1415,6 +1511,9 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 								operator_output(&cptr[3+9],cptr[3].cval*FIXEDPT,tremval4[i]);
 
 								Bit32s chanval = cptr[3+9].cval;
+#ifdef EMSCRIPTEN
+								scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 								CHANVAL_OUT
 							}
 						}
@@ -1452,11 +1551,14 @@ void OPLChipClass::adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 					operator_output(&cptr[9],cptr[0].cval*FIXEDPT,tremval2[i]);
 
 					Bit32s chanval = cptr[9].cval;
+#ifdef EMSCRIPTEN
+					scope_buffer[scope_ch][scope_offset+i]= chanval;
+#endif
 					CHANVAL_OUT
 				}
 			}
 		}
-
+		
 #if defined(OPLTYPE_IS_OPL3)
 		if (adlibreg[0x105]&1) {
 			if (int_numsamplechannels == 1) {

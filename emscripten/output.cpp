@@ -21,6 +21,7 @@
 #include <emuopl.h>
 #include <kemuopl.h>
 
+
 #include "output.h"
 #include "defines.h"
 
@@ -42,20 +43,31 @@ EmuPlayer::EmuPlayer(Copl *nopl, unsigned char nbits, unsigned char nchannels,
 		     unsigned long nfreq, unsigned long nbufsize)
   : opl(nopl), buf_size(nbufsize), freq(nfreq), bits(nbits), channels(nchannels)
 {
-  audiobuf = new char [buf_size * getsampsize()];
+	audiobuf = new char [buf_size * getsampsize()];
+  
+  	// "scope" streams
+	allocScopeBuffers(buf_size);
 }
 
 EmuPlayer::~EmuPlayer()
 {
   delete [] audiobuf;
+  allocScopeBuffers(0);
 }
 
 // Some output plugins (ALSA) need to change the buffer size mid-init
 void EmuPlayer::setbufsize(unsigned long nbufsize)
 {
-  delete [] audiobuf;
-  buf_size = nbufsize;
-  audiobuf = new char [buf_size * getsampsize()];
+	delete [] audiobuf;
+	buf_size = nbufsize;
+	audiobuf = new char [buf_size * getsampsize()];
+
+	allocScopeBuffers(buf_size);
+}
+
+// hack to sync "scope" buffers without touching existing AdPlug APIs
+int  EmuPlayer::currentBufferPos() {
+	return scopeBufferPos;
 }
 
 void EmuPlayer::frame()
@@ -63,6 +75,7 @@ void EmuPlayer::frame()
   static long minicnt = 0;
   long i, towrite = buf_size;
   char *pos = audiobuf;
+  scopeBufferPos= 0;
 
   // Prepare audiobuf with emulator output
   while(towrite > 0) {
@@ -73,11 +86,29 @@ void EmuPlayer::frame()
     i = min(towrite, (long)(minicnt / p->getrefresh() + 4) & ~3);
     opl->update((short *)pos, i);
     pos += i * getsampsize(); towrite -= i;
+	scopeBufferPos+= i;
     minicnt -= (long)(p->getrefresh() * i);
   }
 
   // call output driver
   output(audiobuf, buf_size * getsampsize());
+}
+
+void EmuPlayer::allocScopeBuffers(unsigned long size) {
+	// size in sync with audio buffer	
+	if (scopeBufferLen != size) {
+		scopeBufferLen= size;
+	  
+		for (int i= 0; i<MAX_SCOPES; i++) {
+			if (scopeBuffers[i] != 0) free(scopeBuffers[i]);
+			
+			scopeBuffers[i]= size ? (int*)calloc(sizeof(int), size) : 0;
+		}
+	}
+}
+
+int32_t** EmuPlayer::getScopeBuffers() {
+	return scopeBuffers;
 }
 
 /***** BufPlayer *****/
@@ -86,20 +117,22 @@ BufPlayer::BufPlayer(Copl *nopl, unsigned char bits,
 		     int channels, int freq, unsigned long bufsize)
   : EmuPlayer(nopl, bits, channels, freq, bufsize)
 {
-  extAudiobuf = new char [buf_size * getsampsize()];
+	extAudiobuf = new char [buf_size * getsampsize()];
 }
+
 
 BufPlayer::~BufPlayer()
 {
-  delete [] extAudiobuf;
+  delete [] extAudiobuf;  
 }
 
 void BufPlayer::setbufsize(unsigned long nbufsize)
 {
 	EmuPlayer::setbufsize(nbufsize);
 	delete [] extAudiobuf;
-	extAudiobuf = new char [buf_size * getsampsize()];
+	extAudiobuf = new char [buf_size * getsampsize()];	
 }
+
 
 void BufPlayer::output(const void *buf, unsigned long size)
 {

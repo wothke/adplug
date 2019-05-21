@@ -21,6 +21,7 @@
 #define H_OUTPUT
 
 #include <player.h>
+#include <woodyopl.h>
 
 class Player
 {
@@ -52,12 +53,20 @@ public:
   virtual void frame();
   virtual Copl *get_opl() { return opl; }
 
+  int32_t** getScopeBuffers();
+  int currentBufferPos();
 protected:
   virtual void output(const void *buf, unsigned long size) = 0;
   // The output buffer is always of the size requested through the constructor.
   // This time, size is measured in bytes, not samples!
 
   unsigned char getsampsize() { return (channels * (bits / 8)); }
+
+  void allocScopeBuffers(unsigned long size);  
+private:
+	int32_t* scopeBuffers[MAX_SCOPES];
+	int scopeBufferLen;	
+	int scopeBufferPos;	
 };
 
 class BufPlayer: public EmuPlayer

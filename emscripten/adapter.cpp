@@ -53,12 +53,19 @@ class FileNotReadyMarker: public CPlayer {
   float getrefresh() { return 0.0f; }
   std::string gettype() { return std::string("File not ready marker"); }
 };
-
+/*
 #ifdef EMSCRIPTEN
 #define EMSCRIPTEN_KEEPALIVE __attribute__((used))
 #else
 #define EMSCRIPTEN_KEEPALIVE
 #endif
+*/
+
+// hack: from woodyopl.c
+extern int** OPL_SCOPE_BUFFERS();
+extern char OPL_RYTHM_MODE();
+extern char OPL_SCOPE_CHANNELS();
+
 
 #define BUF_SIZE	1024
 #define TEXT_MAX	255
@@ -138,10 +145,9 @@ extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, cha
 	CAdPlug::set_database(db);
 	
 	if(!player->p) {
-		std::cout << "Error loading: " << fn << std::endl;
 		delete opl; 
 		opl= 0; 
-		return -1;
+		return 1;	// ERROR
 	}	
 		
 	sampleRate= sample_rate;
@@ -158,6 +164,15 @@ extern "C" int EMSCRIPTEN_KEEPALIVE emu_set_subsong(int subsong)
 	totalTime= player->p->songlength(subsong);	// must be cached bc call corrupts playback
 	
 	return 0;
+}
+
+extern "C" const int emu_get_num_insts() __attribute__((noinline));
+extern "C" const int EMSCRIPTEN_KEEPALIVE emu_get_num_insts() {
+    return (player && player->p) ? player->p->getinstruments() : 0;
+}
+extern "C" const char* emu_get_inst_text(unsigned int idx) __attribute__((noinline));
+extern "C" const char* EMSCRIPTEN_KEEPALIVE emu_get_inst_text(unsigned int idx) {
+    return (player && player->p) ? player->p->getinstrument(idx).c_str() : "";
 }
 
 extern "C" const char** emu_get_track_info() __attribute__((noinline));
@@ -187,6 +202,9 @@ extern "C" long EMSCRIPTEN_KEEPALIVE emu_get_audio_buffer_length(void) {
 
 extern "C" int emu_compute_audio_samples() __attribute__((noinline));
 extern "C" int EMSCRIPTEN_KEEPALIVE emu_compute_audio_samples() {
+	int i= 0;
+    while (!playTime && !player->playing && i<100) { player->frame(); i++;}	// issue: "Bob's AdLib Music" song will immediately report !playing
+	
     player->frame();
 	playTime+= (player->getSampleBufferSize()>>2);
 	
@@ -213,3 +231,20 @@ extern "C" int EMSCRIPTEN_KEEPALIVE emu_get_max_position() {
 	return totalTime;
 }
 
+
+// note: only implemented/tested for WoodyOPL emulator
+extern "C" int emu_number_trace_streams() __attribute__((noinline));
+extern "C" int EMSCRIPTEN_KEEPALIVE emu_number_trace_streams() {
+	return OPL_SCOPE_CHANNELS();
+}
+extern "C" const char** emu_trace_streams() __attribute__((noinline));
+extern "C" const char** EMSCRIPTEN_KEEPALIVE emu_trace_streams() {
+	return (const char**)player->getScopeBuffers();	// ugly cast to make emscripten happy
+}
+
+extern "C" int32_t**  emu_get_scope_buffers() {
+	return (int32_t**)player->getScopeBuffers();
+}
+extern "C" int  emu_current_buffer_pos() {
+	return player->currentBufferPos();
+}

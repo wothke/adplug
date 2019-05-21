@@ -60,7 +60,7 @@ char CdroPlayer::load(const std::string &filename, const CFileProvider &fp)
 	if (!f) return false;
 
 	char id[8];
-  f->readString(id, 8);
+	f->readString(id, 8);
 	if (strncmp(id, "DBRAWOPL", 8)) {
 		fp.close(f);
 		return false;
@@ -137,6 +137,7 @@ desc_section:
 end_section:
   fp.close(f);
   rewind(0);
+
   return true;
 }
 
