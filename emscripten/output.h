@@ -62,10 +62,10 @@ protected:
 
   unsigned char getsampsize() { return (channels * (bits / 8)); }
 
-  void allocScopeBuffers(unsigned long size);  
+  static void allocScopeBuffers(unsigned long size);  
 private:
-	int32_t* scopeBuffers[MAX_SCOPES];
-	int scopeBufferLen;	
+	static int32_t* _scopeBuffers[MAX_SCOPES];
+	static int _scopeBufferLen;	
 	int scopeBufferPos;	
 };
 

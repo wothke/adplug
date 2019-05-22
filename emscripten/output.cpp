@@ -77,6 +77,11 @@ void EmuPlayer::frame()
   char *pos = audiobuf;
   scopeBufferPos= 0;
 
+  // clear scope buffers
+	for (int i= 0; i<MAX_SCOPES; i++) {
+		memset(_scopeBuffers[i], 0, sizeof(int)*_scopeBufferLen); 
+	}
+  
   // Prepare audiobuf with emulator output
   while(towrite > 0) {
     while(minicnt < 0) {
@@ -94,21 +99,26 @@ void EmuPlayer::frame()
   output(audiobuf, buf_size * getsampsize());
 }
 
+int32_t* EmuPlayer::_scopeBuffers[MAX_SCOPES] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,};
+int EmuPlayer::_scopeBufferLen= 0;	
+
 void EmuPlayer::allocScopeBuffers(unsigned long size) {
 	// size in sync with audio buffer	
-	if (scopeBufferLen != size) {
-		scopeBufferLen= size;
+	if (_scopeBufferLen != size) {
+		_scopeBufferLen= size;
 	  
 		for (int i= 0; i<MAX_SCOPES; i++) {
-			if (scopeBuffers[i] != 0) free(scopeBuffers[i]);
-			
-			scopeBuffers[i]= size ? (int*)calloc(sizeof(int), size) : 0;
+			if (_scopeBuffers[i] != 0)   {
+				delete [] (_scopeBuffers[i]);
+				_scopeBuffers[i]= 0;
+			}			
+			_scopeBuffers[i]= size ? new int[size] : 0;
 		}
 	}
 }
 
 int32_t** EmuPlayer::getScopeBuffers() {
-	return scopeBuffers;
+	return _scopeBuffers;
 }
 
 /***** BufPlayer *****/

@@ -101,41 +101,49 @@ struct StaticBlock {
 
 static StaticBlock staticBlock;
 
+unsigned char isReady= 0;
+
 unsigned long playTime= 0;
 unsigned long totalTime= 0;
 unsigned int sampleRate= 44100;
 
 extern "C" void emu_teardown (void)  __attribute__((noinline));
 extern "C" void EMSCRIPTEN_KEEPALIVE emu_teardown (void) {
+  isReady= 0;
+	
   if(player) { delete player; player= 0;}
   if(opl) { delete opl; opl= 0; }
 	
   if (outputBuffer) {free(outputBuffer); outputBuffer= 0;}
 }
 
+//#include "fprovide.h"
+//CProvider_Filesystem fileProvider;
+
 extern "C" int emu_init(int sample_rate, char *basedir, char *songmodule) __attribute__((noinline));
 extern "C" EMSCRIPTEN_KEEPALIVE int emu_init(int sample_rate, char *basedir, char *songmodule)
-{
+{	
 	emu_teardown();
 	
 	outputBuffer = (short *)calloc(BUF_SIZE, sizeof(short));	
 		
-	std::string	fn = std::string(basedir) + songmodule;  
-
+	std::string	filename = std::string(basedir) + songmodule;	
+	
 //	opl = new CEmuopl(sample_rate, true, true);	// has issues with 2 channel output
 //	opl = new CNemuopl(sample_rate);
 	opl = new CWemuopl(sample_rate, true, true);
-	
-	
+		
 	player= new BufPlayer(opl, 16, 2, sample_rate, BUF_SIZE);
-	
+		
 	// initialize output & player
-	player->get_opl()->init();
-	player->p = CAdPlug::factory(fn, player->get_opl());
+	opl->init();
+	
+	player->p = CAdPlug::factory(filename, opl);
+//	player->p = CAdPlug::factory(filename, opl, CAdPlug::players, fileProvider);
+	
 	if (gFileNotReadyMarker == player->p) {
 		player->p= 0;
 		return -1;	// try again later
-	} else {
 	}
 			
 	if (db == 0) {
@@ -162,6 +170,8 @@ extern "C" int EMSCRIPTEN_KEEPALIVE emu_set_subsong(int subsong)
 	
 	playTime= 0;
 	totalTime= player->p->songlength(subsong);	// must be cached bc call corrupts playback
+	
+	isReady= 1;
 	
 	return 0;
 }
@@ -202,6 +212,8 @@ extern "C" long EMSCRIPTEN_KEEPALIVE emu_get_audio_buffer_length(void) {
 
 extern "C" int emu_compute_audio_samples() __attribute__((noinline));
 extern "C" int EMSCRIPTEN_KEEPALIVE emu_compute_audio_samples() {
+	if (!isReady) return 0;		// don't trigger a new "song end" while still initializing
+	
 	int i= 0;
     while (!playTime && !player->playing && i<100) { player->frame(); i++;}	// issue: "Bob's AdLib Music" song will immediately report !playing
 	
@@ -217,7 +229,7 @@ extern "C" int EMSCRIPTEN_KEEPALIVE emu_compute_audio_samples() {
 
 extern "C" int emu_get_current_position() __attribute__((noinline));
 extern "C" int EMSCRIPTEN_KEEPALIVE emu_get_current_position() {
-	return playTime / sampleRate *1000;	
+	return isReady ? playTime / sampleRate *1000 : -1;	
 }
 
 extern "C" void emu_seek_position(int pos) __attribute__((noinline));
@@ -228,9 +240,15 @@ extern "C" void EMSCRIPTEN_KEEPALIVE emu_seek_position(int pos) {
 
 extern "C" int emu_get_max_position() __attribute__((noinline));
 extern "C" int EMSCRIPTEN_KEEPALIVE emu_get_max_position() {
-	return totalTime;
+	return isReady ? totalTime : -1;
 }
 
+extern "C" int32_t**  emu_get_scope_buffers() {
+	return isReady ? player->getScopeBuffers() : (int32_t**)0;
+}
+extern "C" int  emu_current_buffer_pos() {
+	return isReady ? player->currentBufferPos() : 0;
+}
 
 // note: only implemented/tested for WoodyOPL emulator
 extern "C" int emu_number_trace_streams() __attribute__((noinline));
@@ -239,12 +257,6 @@ extern "C" int EMSCRIPTEN_KEEPALIVE emu_number_trace_streams() {
 }
 extern "C" const char** emu_trace_streams() __attribute__((noinline));
 extern "C" const char** EMSCRIPTEN_KEEPALIVE emu_trace_streams() {
-	return (const char**)player->getScopeBuffers();	// ugly cast to make emscripten happy
+	return (const char**)emu_get_scope_buffers();	// ugly cast to make emscripten happy
 }
 
-extern "C" int32_t**  emu_get_scope_buffers() {
-	return (int32_t**)player->getScopeBuffers();
-}
-extern "C" int  emu_current_buffer_pos() {
-	return player->currentBufferPos();
-}
